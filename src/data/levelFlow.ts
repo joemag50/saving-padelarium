@@ -8,30 +8,30 @@ export type LevelState =
   | 'complete';
 
 export const OBJECTIVES: Record<LevelState, string> = {
-  start: 'Find the others',
-  encounter_1: 'Clear the reception',
-  investigate: 'Investigate the alien barrier',
-  hallway: 'Reach the court',
-  encounter_2: 'Defeat the squad leader',
-  rescue: 'Rescue your friend',
-  complete: 'Shift complete',
+  start: 'Encuentra a los demás',
+  encounter_1: 'Despeja la recepción',
+  investigate: 'Investiga la barrera alienígena',
+  hallway: 'Llega a la cancha',
+  encounter_2: 'Derrota al líder del escuadrón',
+  rescue: 'Rescata a tu amigo',
+  complete: 'Nivel completado',
 };
 
 export const CLUE = {
-  title: 'CLUE FOUND',
-  subtitle: 'Holographic projector',
-  label: 'Label: "Galactic Events Monterrey"',
-  description: 'Someone is using local equipment to fake alien technology.',
-  nextObjective: 'Enter the court and find your friend',
+  title: 'PISTA ENCONTRADA',
+  subtitle: 'Proyector holográfico',
+  label: 'Etiqueta: "Eventos Galácticos Monterrey"',
+  description: 'Alguien está usando equipo local para fingir tecnología extraterrestre.',
+  nextObjective: 'Entra a la cancha y encuentra a tu amigo',
 } as const;
 
 export const RESCUE_LINE =
-  '"They are not aliens. I heard them talking about a setup."';
+  '"No son aliens. Escuché que hablaban de un montaje."';
 
 export const END_SCREEN = {
-  headline: 'NEW CLUE',
-  reveal: 'The invasion uses earthly technology.',
-  subreveal: 'Someone is pretending to be extraterrestrial.',
-  rescued: 'Friend rescued',
-  continuation: 'The investigation continues.',
+  headline: 'NUEVA PISTA',
+  reveal: 'La invasión utiliza tecnología terrestre.',
+  subreveal: 'Alguien está fingiendo ser extraterrestre.',
+  rescued: 'Amigo rescatado',
+  continuation: 'La investigación continuará.',
 } as const;

@@ -16,8 +16,9 @@ import {
 } from '../config/constants';
 import { EncounterManager } from '../core/EncounterManager';
 import { CLUE, OBJECTIVES, RESCUE_LINE, type LevelState } from '../data/levelFlow';
-import { DEFAULT_PARTY_SELECTION, getRosterCharacter } from '../data/roster';
+import { getDefaultParty, getRosterCharacter } from '../data/roster';
 import { sanitizePartySelection, type PartySelection } from '../systems/rosterProgress';
+import { getPlayerCount } from '../systems/session';
 import type { PlayerIndex } from '../types/player';
 import { PairSpecial } from '../combat/PairSpecial';
 import { Player } from '../player/Player';
@@ -71,7 +72,7 @@ export class LevelScene extends Phaser.Scene {
     this.buildLevel();
     this.hud = new GameHud(this);
     this.spawnPlayers();
-    this.hud.bindPlayers(this.players.map((player) => player.displayName));
+    this.hud.bindPlayers(this.players.map((player) => player.displayName), getPlayerCount(this.registry));
     this.hud.setObjective(OBJECTIVES.start);
     for (const [index, player] of this.players.entries()) {
       this.hud.setPlayerHp(index, player.combatant.health, player.combatant.maxHealth);
@@ -81,7 +82,8 @@ export class LevelScene extends Phaser.Scene {
 
     const keyboard = this.input.keyboard;
     if (!keyboard) throw new Error('Keyboard input is unavailable.');
-    this.playerInput = new PlayerInput(keyboard);
+    this.playerInput = new PlayerInput(keyboard, this.input.gamepad, getPlayerCount(this.registry));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.playerInput.destroy());
   }
 
   update(time: number, delta: number) {
@@ -174,20 +176,20 @@ export class LevelScene extends Phaser.Scene {
       )
       .setDepth(WALK_LANE.minY - 1);
 
-    this.addZoneLabel('ZONE A — RECEPTION', 320, 250);
-    this.addProp(620, 330, 220, 90, 'FRONT DESK');
+    this.addZoneLabel('ZONA A — RECEPCIÓN', 320, 250);
+    this.addProp(620, 330, 220, 90, 'MOSTRADOR');
     this.projectorProp = this.add
       .rectangle(660, 455, 50, 30, 0xfbbf24)
       .setStrokeStyle(2, 0xffffff, 0.5);
     this.add
-      .text(660, 420, 'PROJECTOR', { fontFamily: FONTS.mono, fontSize: '12px', color: '#fbbf24' })
+      .text(660, 420, 'PROYECTOR', { fontFamily: FONTS.mono, fontSize: '12px', color: '#fbbf24' })
       .setOrigin(0.5);
 
     this.barrierGate = this.add
       .rectangle(LEVEL_ZONES.barrierX, 430, 36, 230, 0x66e0ff, 0.4)
       .setStrokeStyle(3, 0x66e0ff);
     this.add
-      .text(LEVEL_ZONES.barrierX, 300, 'ALIEN BARRIER', {
+      .text(LEVEL_ZONES.barrierX, 300, 'BARRERA ALIENÍGENA', {
         fontFamily: FONTS.mono,
         fontSize: '14px',
         color: '#9fefff',
@@ -202,10 +204,10 @@ export class LevelScene extends Phaser.Scene {
     this.cableGfx = this.add.graphics();
     this.drawCable(false);
 
-    this.addZoneLabel('ZONE B — HALLWAY', 1380, 220);
-    this.addProp(1500, WALK_LANE.minY - 40, 80, 160, 'PILLAR');
-    this.addZoneLabel('ZONE C — COURT', 1880, 220);
-    this.addProp(2100, WALK_LANE.minY - 40, 80, 160, 'PILLAR');
+    this.addZoneLabel('ZONA B — PASILLO', 1380, 220);
+    this.addProp(1500, WALK_LANE.minY - 40, 80, 160, 'COLUMNA');
+    this.addZoneLabel('ZONA C — CANCHA', 1880, 220);
+    this.addProp(2100, WALK_LANE.minY - 40, 80, 160, 'COLUMNA');
 
     this.rescuedFriend = this.add.container(LEVEL_ZONES.rescueX, 460).setVisible(false);
     this.rescuedFriend.add(
@@ -256,8 +258,10 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private getPartySelection(): PartySelection {
+    const playerCount = getPlayerCount(this.registry);
     return sanitizePartySelection(
-      (this.registry.get('partySelection') as PartySelection | undefined) ?? DEFAULT_PARTY_SELECTION,
+      (this.registry.get('partySelection') as PartySelection | undefined) ?? getDefaultParty(playerCount),
+      playerCount,
     );
   }
 
@@ -333,7 +337,7 @@ export class LevelScene extends Phaser.Scene {
         this.hud.setObjective(OBJECTIVES.rescue);
         this.rescuedFriend.setVisible(true);
         applyDepthSort(this.rescuedFriend, this.rescuedFriend.y);
-        this.hud.showMessage('RESCUE', RESCUE_LINE, () => {
+        this.hud.showMessage('RESCATE', RESCUE_LINE, () => {
           this.flow.rescueShown = true;
         });
       },
@@ -350,13 +354,13 @@ export class LevelScene extends Phaser.Scene {
     const nearProjector = this.isAnyPlayerNear(INTERACT_POINTS.projector);
 
     if (!this.flow.clueFound && nearBarrier) {
-      this.hud.setInteractHint('[Interact] Inspect barrier');
+      this.hud.setInteractHint('[Interactuar] Inspeccionar la barrera');
       if (this.interactPressed()) {
         this.flow.barrierInspected = true;
         this.drawCable(true);
         this.hud.showMessage(
-          'BARRIER',
-          'The barrier has no visible source. A cable runs behind the front desk.',
+          'BARRERA',
+          'La barrera no tiene una fuente visible. Un cable se extiende detrás del mostrador.',
           () => undefined,
         );
       }
@@ -364,7 +368,7 @@ export class LevelScene extends Phaser.Scene {
     }
 
     if (!this.flow.clueFound && this.flow.barrierInspected && nearProjector) {
-      this.hud.setInteractHint('[Interact] Disable projector');
+      this.hud.setInteractHint('[Interactuar] Apagar el proyector');
       if (this.interactPressed()) {
         this.disableProjector();
       }
@@ -372,7 +376,7 @@ export class LevelScene extends Phaser.Scene {
     }
 
     if (!this.flow.clueFound && nearBarrier) {
-      this.hud.setInteractHint('The barrier is still active');
+      this.hud.setInteractHint('La barrera sigue activa');
     } else {
       this.hud.setInteractHint('');
     }

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { COMBAT } from '../config/combat';
 import { COLORS, FONTS } from '../ui/theme';
-import { PLAYER_CONTROL_HINTS } from '../types/player';
+import { getControlHintLines, type PlayerCount } from '../types/player';
 
 export class GameHud {
   private readonly objectiveText: Phaser.GameObjects.Text;
@@ -22,7 +22,14 @@ export class GameHud {
       .setDepth(10_000);
 
     this.controlsText = scene.add
-      .text(24, 44, '', { fontFamily: FONTS.mono, fontSize: '12px', color: COLORS.textMuted })
+      .text(1256, 12, '', {
+        fontFamily: FONTS.mono,
+        fontSize: '12px',
+        color: COLORS.textMuted,
+        align: 'right',
+        lineSpacing: 2,
+      })
+      .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(10_000);
 
@@ -33,7 +40,7 @@ export class GameHud {
       .setDepth(10_000);
 
     scene.add
-      .text(640, 14, 'TEAM SPECIAL', {
+      .text(640, 14, 'ESPECIAL DE EQUIPO', {
         fontFamily: FONTS.mono,
         fontSize: '12px',
         color: COLORS.textMuted,
@@ -64,14 +71,14 @@ export class GameHud {
     );
   }
 
-  bindPlayers(names: string[]) {
+  bindPlayers(names: string[], playerCount: PlayerCount) {
     for (const text of this.hpTexts) text.destroy();
     this.hpTexts.length = 0;
 
     names.forEach((name, index) => {
       this.hpTexts.push(
         this.scene.add
-          .text(24, 72 + index * 20, `${name} HP: --/--`, {
+          .text(24, 48 + index * 20, `${name} Vida: --/--`, {
             fontFamily: FONTS.mono,
             fontSize: '14px',
             color: index % 2 === 0 ? COLORS.text : COLORS.textMuted,
@@ -81,20 +88,18 @@ export class GameHud {
       );
     });
 
-    this.controlsText.setText(
-      names.map((_, index) => PLAYER_CONTROL_HINTS[index]).join('  ·  '),
-    );
+    this.controlsText.setText(getControlHintLines(playerCount).join('\n'));
   }
 
   setObjective(text: string) {
-    this.objectiveText.setText(`Objective: ${text}`);
+    this.objectiveText.setText(`Objetivo: ${text}`);
   }
 
   setPlayerHp(index: number, current: number, max: number) {
     const label = this.hpTexts[index];
     if (!label) return;
-    const name = label.text.split(' HP:')[0];
-    label.setText(`${name} HP: ${current}/${max}`);
+    const name = label.text.split(' Vida:')[0];
+    label.setText(`${name} Vida: ${current}/${max}`);
   }
 
   setSpecial(charge: number, readyFlash: boolean) {
@@ -142,7 +147,7 @@ export class GameHud {
     );
 
     const close = this.scene.add
-      .text(0, 120, '[ Press any interact key to continue ]', {
+      .text(0, 120, '[ Presiona interactuar (E · P · botón B) para continuar ]', {
         fontFamily: FONTS.mono,
         fontSize: '16px',
         color: COLORS.textMuted,

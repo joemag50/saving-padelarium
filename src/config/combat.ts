@@ -35,7 +35,7 @@ export const ENEMY_STATS = {
     attackActiveMs: 180,
     attackCooldownMs: 1500,
     color: 0x8b5cf6,
-    label: 'Fake invader',
+    label: 'Falso invasor',
   },
   miniBoss: {
     maxHealth: 120,
@@ -46,6 +46,6 @@ export const ENEMY_STATS = {
     attackActiveMs: 220,
     attackCooldownMs: 2000,
     color: 0xc026d3,
-    label: 'Squad Leader',
+    label: 'Líder del escuadrón',
   },
 } as const;

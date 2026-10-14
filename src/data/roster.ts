@@ -1,3 +1,5 @@
+import { MAX_PLAYERS, type PlayerCount } from '../types/player';
+
 export type RosterCharacterId =
   | 'carol'
   | 'jose'
@@ -23,7 +25,7 @@ export type RosterCharacter = {
   unlock: RosterUnlockKind;
 };
 
-export const MAX_PARTY_SIZE = 4;
+export const MAX_PARTY_SIZE = MAX_PLAYERS;
 
 export const ROSTER: readonly RosterCharacter[] = [
   { id: 'carol', name: 'Carol', color: 0x5b8def, unlock: 'starter' },
@@ -43,6 +45,15 @@ export const ROSTER: readonly RosterCharacter[] = [
 
 export const DEFAULT_PARTY_SELECTION: RosterCharacterId[] = ['carol'];
 
+const DEFAULT_PARTY_BY_COUNT: Record<PlayerCount, RosterCharacterId[]> = {
+  1: ['carol'],
+  2: ['carol', 'jose'],
+};
+
+export function getDefaultParty(playerCount: PlayerCount): RosterCharacterId[] {
+  return [...DEFAULT_PARTY_BY_COUNT[playerCount]];
+}
+
 export function getRosterCharacter(id: RosterCharacterId) {
   const character = ROSTER.find((entry) => entry.id === id);
   if (!character) throw new Error(`Unknown roster character: ${id}`);
@@ -51,7 +62,7 @@ export function getRosterCharacter(id: RosterCharacterId) {
 
 export function getLockedHint(character: RosterCharacter) {
   if (character.unlock === 'mvp_rescue') {
-    return 'Rescue in the court';
+    return 'Rescátalo en la cancha';
   }
-  return 'Rescue in a future level';
+  return 'Rescátalo en otro nivel';
 }

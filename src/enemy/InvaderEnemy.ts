@@ -205,7 +205,7 @@ export class InvaderEnemy implements CombatTarget {
     if (!this.isActive) return;
     this.active = false;
     this.hitboxDebug?.clear();
-    this.label.setText('Defeated');
+    this.label.setText('Derrotado');
     this.body.setFillStyle(0x4b5563, 0.5);
     this.scene.tweens.add({ targets: this.container, alpha: 0.25, duration: 250 });
   }

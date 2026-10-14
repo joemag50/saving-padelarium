@@ -48,14 +48,17 @@ export function unlockMvpRescueCharacter() {
 
 export type PartySelection = RosterCharacterId[];
 
-export function sanitizePartySelection(selection: PartySelection): PartySelection {
+export function sanitizePartySelection(
+  selection: PartySelection,
+  maxSize: number = MAX_PARTY_SIZE,
+): PartySelection {
   const unlocked = getUnlockedCharacterIds();
   const unique: RosterCharacterId[] = [];
 
   for (const id of selection) {
     if (!unlocked.has(id)) continue;
     if (unique.includes(id)) continue;
-    if (unique.length >= MAX_PARTY_SIZE) break;
+    if (unique.length >= maxSize) break;
     unique.push(id);
   }
 

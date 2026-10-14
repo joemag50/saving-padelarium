@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
 import {
-  DEFAULT_PARTY_SELECTION,
+  getDefaultParty,
   getLockedHint,
   getRosterCharacter,
-  MAX_PARTY_SIZE,
   ROSTER,
   type RosterCharacter,
   type RosterCharacterId,
@@ -15,8 +14,11 @@ import {
   sanitizePartySelection,
   type PartySelection,
 } from '../systems/rosterProgress';
+import { getPlayerCount } from '../systems/session';
+import type { PlayerCount } from '../types/player';
 import { COLORS, FONTS } from '../ui/theme';
 import { createButton } from '../ui/createButton';
+import { bindMenuInput } from '../ui/menuInput';
 
 const GRID = {
   columns: 5,
@@ -28,8 +30,10 @@ const GRID = {
 } as const;
 
 export class CharacterSelectScene extends Phaser.Scene {
-  private party: PartySelection = [...DEFAULT_PARTY_SELECTION];
+  private playerCount: PlayerCount = 1;
+  private party: PartySelection = [];
   private partySummaryText!: Phaser.GameObjects.Text;
+  private startButton?: Phaser.GameObjects.Container;
   private cardBackgrounds = new Map<RosterCharacterId, Phaser.GameObjects.Rectangle>();
   private cardStatusTexts = new Map<RosterCharacterId, Phaser.GameObjects.Text>();
 
@@ -38,19 +42,24 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   create() {
-    this.party = sanitizePartySelection(this.party);
+    this.playerCount = getPlayerCount(this.registry);
+    this.party = this.initialParty();
     this.cameras.main.setBackgroundColor(COLORS.background);
 
     this.add
-      .text(GAME_WIDTH / 2, 48, 'Choose your team', {
+      .text(GAME_WIDTH / 2, 48, this.playerCount === 1 ? 'Elige tu personaje' : 'Elijan su equipo', {
         fontFamily: FONTS.title,
         fontSize: '40px',
         color: COLORS.textBright,
       })
       .setOrigin(0.5);
 
+    const instructions =
+      this.playerCount === 1
+        ? 'Elige a un amigo desbloqueado.'
+        : 'Elijan 2 amigos desbloqueados. Clic de nuevo para quitar.';
     this.add
-      .text(GAME_WIDTH / 2, 88, 'Pick 1 to 4 unlocked friends. Click again to remove.', {
+      .text(GAME_WIDTH / 2, 88, instructions, {
         fontFamily: FONTS.ui,
         fontSize: '17px',
         color: COLORS.textMuted,
@@ -66,20 +75,30 @@ export class CharacterSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.createRosterGrid();
-    this.refreshUi();
 
-    createButton(this, {
+    this.startButton = createButton(this, {
       x: GAME_WIDTH / 2,
       y: GAME_HEIGHT - 88,
       width: 280,
       height: 52,
-      label: 'START LEVEL',
+      label: 'EMPEZAR',
       color: COLORS.playerCarol,
       hoverColor: 0x7aaef7,
-      onClick: () => {
-        this.registry.set('partySelection', sanitizePartySelection(this.party));
-        this.scene.start('LevelScene');
-      },
+      onClick: () => this.startLevel(),
+    });
+    this.refreshUi();
+
+    this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 44, 'Enter o botón A para empezar · Esc o B para volver', {
+        fontFamily: FONTS.mono,
+        fontSize: '14px',
+        color: COLORS.textMuted,
+      })
+      .setOrigin(0.5);
+
+    bindMenuInput(this, {
+      confirm: () => this.startLevel(),
+      back: () => this.scene.start('PlayerCountScene'),
     });
 
     createButton(this, {
@@ -87,11 +106,24 @@ export class CharacterSelectScene extends Phaser.Scene {
       y: GAME_HEIGHT - 88,
       width: 160,
       height: 44,
-      label: 'BACK',
+      label: 'ATRÁS',
       color: COLORS.prop,
       hoverColor: COLORS.propBorder,
-      onClick: () => this.scene.start('TitleScene'),
+      onClick: () => this.scene.start('PlayerCountScene'),
     });
+  }
+
+  /** Keeps the previous pick when possible, topping up with defaults/unlocked friends. */
+  private initialParty(): PartySelection {
+    const previous = (this.registry.get('partySelection') as PartySelection | undefined) ?? [];
+    const candidates = [...previous, ...getDefaultParty(this.playerCount), ...getUnlockedCharacterIds()];
+    return sanitizePartySelection(candidates, this.playerCount);
+  }
+
+  private startLevel() {
+    if (this.party.length !== this.playerCount) return;
+    this.registry.set('partySelection', [...this.party]);
+    this.scene.start('LevelScene');
   }
 
   private createRosterGrid() {
@@ -146,24 +178,28 @@ export class CharacterSelectScene extends Phaser.Scene {
   private toggleCharacter(id: RosterCharacterId) {
     if (!isCharacterUnlocked(id)) return;
 
-    const slotIndex = this.party.indexOf(id);
-    if (slotIndex >= 0) {
-      if (this.party.length === 1) return;
+    if (this.party.includes(id)) {
       this.party = this.party.filter((entry) => entry !== id);
-    } else if (this.party.length < MAX_PARTY_SIZE) {
+    } else if (this.party.length < this.playerCount) {
       this.party = [...this.party, id];
+    } else {
+      // Team is full: swap out the last pick so a click always does something.
+      this.party = [...this.party.slice(0, -1), id];
     }
 
-    this.party = sanitizePartySelection(this.party);
     this.refreshUi();
   }
 
   private refreshUi() {
     const unlocked = getUnlockedCharacterIds();
-    const partyLabels = this.party.map((id, index) => `P${index + 1} ${getRosterCharacter(id).name}`);
+    const partyLabels = this.party.map((id, index) => `J${index + 1} ${getRosterCharacter(id).name}`);
+    const missing = this.playerCount - this.party.length;
     this.partySummaryText.setText(
-      `${this.party.length} player${this.party.length === 1 ? '' : 's'} · ${partyLabels.join(' · ')}`,
+      missing > 0
+        ? `Falta${missing === 1 ? '' : 'n'} ${missing} por elegir${partyLabels.length ? ` · ${partyLabels.join(' · ')}` : ''}`
+        : partyLabels.join(' · '),
     );
+    this.startButton?.setAlpha(missing > 0 ? 0.4 : 1);
 
     for (const character of ROSTER) {
       const background = this.cardBackgrounds.get(character.id);
@@ -180,13 +216,11 @@ export class CharacterSelectScene extends Phaser.Scene {
       );
 
       if (!isUnlocked) {
-        statusText.setText(`LOCKED · ${getLockedHint(character)}`);
+        statusText.setText(`BLOQUEADO · ${getLockedHint(character)}`);
       } else if (slotIndex >= 0) {
-        statusText.setText(`P${slotIndex + 1} · UNLOCKED`);
-      } else if (this.party.length >= MAX_PARTY_SIZE) {
-        statusText.setText('UNLOCKED · Team full');
+        statusText.setText(`J${slotIndex + 1} · ELEGIDO`);
       } else {
-        statusText.setText('UNLOCKED');
+        statusText.setText('DISPONIBLE');
       }
     }
   }

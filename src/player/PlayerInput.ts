@@ -1,159 +1,169 @@
-import type { PlayerIndex } from '../types/player';
+import Phaser from 'phaser';
+import type { PlayerCount, PlayerIndex } from '../types/player';
 
 export interface MovementVector {
   x: number;
   y: number;
 }
 
-const PLAYER_KEY_CODES: Record<
-  PlayerIndex,
-  {
-    up: string[];
-    down: string[];
-    left: string[];
-    right: string[];
-    attack: string;
-    dodge: string;
-    special: string;
-    interact: string;
-  }
-> = {
-  0: {
-    up: ['W'],
-    down: ['S'],
-    left: ['A'],
-    right: ['D'],
-    attack: 'J',
-    dodge: 'SPACE',
-    special: 'K',
-    interact: 'E',
-  },
-  1: {
-    up: ['UP'],
-    down: ['DOWN'],
-    left: ['LEFT'],
-    right: ['RIGHT'],
-    attack: 'L',
-    dodge: 'PERIOD',
-    special: 'O',
-    interact: 'P',
-  },
-  2: {
-    up: ['T'],
-    down: ['G'],
-    left: ['F'],
-    right: ['H'],
-    attack: 'Y',
-    dodge: 'C',
-    special: 'U',
-    interact: 'I',
-  },
-  3: {
-    up: ['NUMPAD_8'],
-    down: ['NUMPAD_5'],
-    left: ['NUMPAD_4'],
-    right: ['NUMPAD_6'],
-    attack: 'NUMPAD_1',
-    dodge: 'NUMPAD_2',
-    special: 'NUMPAD_3',
-    interact: 'NUMPAD_0',
-  },
+type Action = 'attack' | 'dodge' | 'special' | 'interact';
+
+type KeyCodes = {
+  up: string;
+  down: string;
+  left: string;
+  right: string;
+} & Record<Action, string>;
+
+type KeySet = {
+  up: Phaser.Input.Keyboard.Key;
+  down: Phaser.Input.Keyboard.Key;
+  left: Phaser.Input.Keyboard.Key;
+  right: Phaser.Input.Keyboard.Key;
+} & Record<Action, Phaser.Input.Keyboard.Key>;
+
+const KEYBOARD_LAYOUTS: readonly KeyCodes[] = [
+  { up: 'W', down: 'S', left: 'A', right: 'D', attack: 'J', dodge: 'SPACE', special: 'K', interact: 'E' },
+  { up: 'UP', down: 'DOWN', left: 'LEFT', right: 'RIGHT', attack: 'L', dodge: 'PERIOD', special: 'O', interact: 'P' },
+];
+
+/** Standard-mapping gamepad button indices (Xbox labels). */
+const PAD_BUTTONS: Record<Action, number> = {
+  dodge: 0, // A
+  interact: 1, // B
+  attack: 2, // X
+  special: 3, // Y
 };
 
-type DirectionKeys = {
-  up: Phaser.Input.Keyboard.Key[];
-  down: Phaser.Input.Keyboard.Key[];
-  left: Phaser.Input.Keyboard.Key[];
-  right: Phaser.Input.Keyboard.Key[];
-  attack: Phaser.Input.Keyboard.Key;
-  dodge: Phaser.Input.Keyboard.Key;
-  special: Phaser.Input.Keyboard.Key;
-  interact: Phaser.Input.Keyboard.Key;
-};
+const STICK_DEADZONE = 0.25;
 
+/**
+ * Merges keyboard and gamepad input per player.
+ * Solo: P1 listens to both keyboard layouts and every connected gamepad.
+ * Two players: each player gets one keyboard layout plus the Nth connected gamepad.
+ */
 export class PlayerInput {
-  private readonly bindings: Record<PlayerIndex, DirectionKeys>;
+  private readonly keySets: KeySet[];
+  private readonly gamepad: Phaser.Input.Gamepad.GamepadPlugin | null;
+  private readonly pendingPadPresses = new Set<string>();
+  private readonly playerCount: PlayerCount;
 
-  constructor(keyboard: Phaser.Input.Keyboard.KeyboardPlugin) {
-    this.bindings = {
-      0: this.createDirectionKeys(keyboard, PLAYER_KEY_CODES[0]),
-      1: this.createDirectionKeys(keyboard, PLAYER_KEY_CODES[1]),
-      2: this.createDirectionKeys(keyboard, PLAYER_KEY_CODES[2]),
-      3: this.createDirectionKeys(keyboard, PLAYER_KEY_CODES[3]),
-    };
+  constructor(
+    keyboard: Phaser.Input.Keyboard.KeyboardPlugin,
+    gamepad: Phaser.Input.Gamepad.GamepadPlugin | null,
+    playerCount: PlayerCount,
+  ) {
+    this.playerCount = playerCount;
+    this.keySets = KEYBOARD_LAYOUTS.map((codes) => createKeySet(keyboard, codes));
+    this.gamepad = gamepad;
+    // Latch presses so a tap between frames is never lost, mirroring Key.JustDown semantics.
+    gamepad?.on('down', this.onPadDown, this);
+  }
+
+  destroy() {
+    this.gamepad?.off('down', this.onPadDown, this);
+    this.pendingPadPresses.clear();
   }
 
   getMovement(playerIndex: PlayerIndex): MovementVector {
-    const keys = this.bindings[playerIndex];
     let x = 0;
     let y = 0;
 
-    if (keys.left.some((key) => key.isDown)) x -= 1;
-    if (keys.right.some((key) => key.isDown)) x += 1;
-    if (keys.up.some((key) => key.isDown)) y -= 1;
-    if (keys.down.some((key) => key.isDown)) y += 1;
+    for (const keys of this.keySetsFor(playerIndex)) {
+      if (keys.left.isDown) x -= 1;
+      if (keys.right.isDown) x += 1;
+      if (keys.up.isDown) y -= 1;
+      if (keys.down.isDown) y += 1;
+    }
 
-    if (x !== 0 && y !== 0) {
-      const scale = Math.SQRT1_2;
-      x *= scale;
-      y *= scale;
+    for (const pad of this.padsFor(playerIndex)) {
+      if (pad.left) x -= 1;
+      if (pad.right) x += 1;
+      if (pad.up) y -= 1;
+      if (pad.down) y += 1;
+      const stick = pad.leftStick;
+      if (stick.length() > STICK_DEADZONE) {
+        x += stick.x;
+        y += stick.y;
+      }
+    }
+
+    const length = Math.hypot(x, y);
+    if (length > 1) {
+      x /= length;
+      y /= length;
     }
 
     return { x, y };
   }
 
   attackJustPressed(playerIndex: PlayerIndex) {
-    return Phaser.Input.Keyboard.JustDown(this.bindings[playerIndex].attack);
+    return this.justPressed(playerIndex, 'attack');
   }
 
   dodgeJustPressed(playerIndex: PlayerIndex) {
-    return Phaser.Input.Keyboard.JustDown(this.bindings[playerIndex].dodge);
-  }
-
-  specialJustPressed(playerIndex: PlayerIndex) {
-    return Phaser.Input.Keyboard.JustDown(this.bindings[playerIndex].special);
-  }
-
-  interactJustPressed(playerIndex: PlayerIndex) {
-    return Phaser.Input.Keyboard.JustDown(this.bindings[playerIndex].interact);
+    return this.justPressed(playerIndex, 'dodge');
   }
 
   specialPressedByAny(activeCount: number) {
-    for (let index = 0; index < activeCount; index += 1) {
-      if (this.specialJustPressed(index as PlayerIndex)) return true;
-    }
-    return false;
+    return this.pressedByAny(activeCount, 'special');
   }
 
   interactPressedByAny(activeCount: number) {
-    for (let index = 0; index < activeCount; index += 1) {
-      if (this.interactJustPressed(index as PlayerIndex)) return true;
-    }
-    return false;
+    return this.pressedByAny(activeCount, 'interact');
   }
 
-  private createDirectionKeys(
-    keyboard: Phaser.Input.Keyboard.KeyboardPlugin,
-    codes: {
-      up: string[];
-      down: string[];
-      left: string[];
-      right: string[];
-      attack: string;
-      dodge: string;
-      special: string;
-      interact: string;
-    },
-  ): DirectionKeys {
-    return {
-      up: codes.up.map((code) => keyboard.addKey(code)),
-      down: codes.down.map((code) => keyboard.addKey(code)),
-      left: codes.left.map((code) => keyboard.addKey(code)),
-      right: codes.right.map((code) => keyboard.addKey(code)),
-      attack: keyboard.addKey(codes.attack),
-      dodge: keyboard.addKey(codes.dodge),
-      special: keyboard.addKey(codes.special),
-      interact: keyboard.addKey(codes.interact),
-    };
+  private pressedByAny(activeCount: number, action: Action) {
+    let pressed = false;
+    for (let index = 0; index < activeCount; index += 1) {
+      // Check every player so stale presses are consumed rather than firing later.
+      if (this.justPressed(index as PlayerIndex, action)) pressed = true;
+    }
+    return pressed;
   }
+
+  private justPressed(playerIndex: PlayerIndex, action: Action) {
+    let pressed = false;
+    for (const keys of this.keySetsFor(playerIndex)) {
+      if (Phaser.Input.Keyboard.JustDown(keys[action])) pressed = true;
+    }
+    for (const pad of this.padsFor(playerIndex)) {
+      if (this.pendingPadPresses.delete(padPressKey(pad.index, PAD_BUTTONS[action]))) pressed = true;
+    }
+    return pressed;
+  }
+
+  private keySetsFor(playerIndex: PlayerIndex): KeySet[] {
+    if (this.playerCount === 1) return this.keySets;
+    const keys = this.keySets[playerIndex];
+    return keys ? [keys] : [];
+  }
+
+  private padsFor(playerIndex: PlayerIndex): Phaser.Input.Gamepad.Gamepad[] {
+    const pads = (this.gamepad?.getAll() ?? []).filter((pad) => pad?.connected);
+    if (this.playerCount === 1) return pads;
+    const pad = pads[playerIndex];
+    return pad ? [pad] : [];
+  }
+
+  private onPadDown(pad: Phaser.Input.Gamepad.Gamepad, button: Phaser.Input.Gamepad.Button) {
+    this.pendingPadPresses.add(padPressKey(pad.index, button.index));
+  }
+}
+
+function padPressKey(padIndex: number, buttonIndex: number) {
+  return `${padIndex}:${buttonIndex}`;
+}
+
+function createKeySet(keyboard: Phaser.Input.Keyboard.KeyboardPlugin, codes: KeyCodes): KeySet {
+  return {
+    up: keyboard.addKey(codes.up),
+    down: keyboard.addKey(codes.down),
+    left: keyboard.addKey(codes.left),
+    right: keyboard.addKey(codes.right),
+    attack: keyboard.addKey(codes.attack),
+    dodge: keyboard.addKey(codes.dodge),
+    special: keyboard.addKey(codes.special),
+    interact: keyboard.addKey(codes.interact),
+  };
 }

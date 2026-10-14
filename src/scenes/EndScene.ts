@@ -5,6 +5,7 @@ import { unlockMvpRescueCharacter } from '../systems/rosterProgress';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
 import { COLORS, FONTS } from '../ui/theme';
 import { createButton } from '../ui/createButton';
+import { bindMenuInput } from '../ui/menuInput';
 
 export class EndScene extends Phaser.Scene {
   constructor() {
@@ -53,7 +54,7 @@ export class EndScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         430,
-        'If the aliens are fake, who organized the attack\nand why do they want Padelarium?',
+        'Si los aliens son falsos, ¿quién organizó el ataque\ny por qué quieren Padelarium?',
         {
           fontFamily: FONTS.ui,
           fontSize: '20px',
@@ -68,7 +69,7 @@ export class EndScene extends Phaser.Scene {
       y: GAME_HEIGHT - 100,
       width: 240,
       height: 52,
-      label: 'RESTART LEVEL',
+      label: 'REINICIAR NIVEL',
       color: COLORS.playerCarol,
       hoverColor: 0x7aaef7,
       onClick: () => this.scene.start('CharacterSelectScene'),
@@ -79,10 +80,23 @@ export class EndScene extends Phaser.Scene {
       y: GAME_HEIGHT - 100,
       width: 240,
       height: 52,
-      label: 'MAIN MENU',
+      label: 'MENÚ PRINCIPAL',
       color: COLORS.prop,
       hoverColor: COLORS.propBorder,
       onClick: () => this.scene.start('TitleScene'),
+    });
+
+    this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 44, 'Enter o botón A para reiniciar · Esc o B para el menú', {
+        fontFamily: FONTS.mono,
+        fontSize: '14px',
+        color: COLORS.textMuted,
+      })
+      .setOrigin(0.5);
+
+    bindMenuInput(this, {
+      confirm: () => this.scene.start('CharacterSelectScene'),
+      back: () => this.scene.start('TitleScene'),
     });
   }
 }
