@@ -16,7 +16,8 @@ const config: Phaser.Types.Core.GameConfig = {
   height: GAME_HEIGHT,
   parent: 'game-container',
   backgroundColor: '#1a1f2e',
-  input: { gamepad: true },
+  // Extra pointers so a phone can move and attack with two fingers at once.
+  input: { gamepad: true, activePointers: 3 },
   scene: [BootScene, TitleScene, PlayerCountScene, LevelSelectScene, CharacterSelectScene, LevelScene, EndScene],
   scale: {
     mode: Phaser.Scale.FIT,

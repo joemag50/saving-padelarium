@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COMBAT } from '../config/combat';
 import { COLORS, textStyle } from '../ui/theme';
 import { getControlHintLines, type PlayerCount } from '../types/player';
+import { isTouchDevice } from '../systems/device';
 
 /**
  * Messages are closed with the attack button, so ignore presses for a moment after one opens;
@@ -107,7 +108,8 @@ export class GameHud {
       );
     });
 
-    this.controlsText.setText(getControlHintLines(playerCount).join('\n'));
+    // On phones the on-screen buttons explain themselves.
+    this.controlsText.setText(isTouchDevice() ? '' : getControlHintLines(playerCount).join('\n'));
   }
 
   setObjective(text: string) {
@@ -198,7 +200,7 @@ export class GameHud {
     );
 
     const close = this.scene.add
-      .text(0, 120, '[ Presiona golpe (J · L · botón X) para continuar ]', textStyle('bodySmall', {
+      .text(0, 120, isTouchDevice() ? '[ Toca GOLPE para continuar ]' : '[ Presiona golpe (J · L · botón X) para continuar ]', textStyle('bodySmall', {
         color: COLORS.textMuted,
       }))
       .setOrigin(0.5)

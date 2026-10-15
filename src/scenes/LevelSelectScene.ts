@@ -8,6 +8,7 @@ import { createButton } from '../ui/createButton';
 import { bindMenuInput } from '../ui/menuInput';
 import { COLORS, textStyle } from '../ui/theme';
 import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
+import { isTouchDevice } from '../systems/device';
 
 const GRID = {
   columns: 3,
@@ -154,6 +155,7 @@ export class LevelSelectScene extends Phaser.Scene {
   }
 
   private back() {
-    this.scene.start('PlayerCountScene');
+    // Phones skip the player count screen, so "back" goes to the title.
+    this.scene.start(isTouchDevice() ? 'TitleScene' : 'PlayerCountScene');
   }
 }

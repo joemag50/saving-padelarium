@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { PlayerCount, PlayerIndex } from '../types/player';
+import type { TouchControls } from '../ui/TouchControls';
 
 export interface MovementVector {
   x: number;
@@ -46,13 +47,17 @@ export class PlayerInput {
   private readonly gamepad: Phaser.Input.Gamepad.GamepadPlugin | null;
   private readonly pendingPadPresses = new Set<string>();
   private readonly playerCount: PlayerCount;
+  /** On-screen controls (phones); they always drive player 1. */
+  private readonly touch: TouchControls | null;
 
   constructor(
     keyboard: Phaser.Input.Keyboard.KeyboardPlugin,
     gamepad: Phaser.Input.Gamepad.GamepadPlugin | null,
     playerCount: PlayerCount,
+    touch: TouchControls | null = null,
   ) {
     this.playerCount = playerCount;
+    this.touch = touch;
     this.keySets = KEYBOARD_LAYOUTS.map((codes) => createKeySet(keyboard, codes));
     this.gamepad = gamepad;
     // Latch presses so a tap between frames is never lost, mirroring Key.JustDown semantics.
@@ -62,6 +67,7 @@ export class PlayerInput {
   destroy() {
     this.gamepad?.off('down', this.onPadDown, this);
     this.pendingPadPresses.clear();
+    this.touch?.destroy();
   }
 
   getMovement(playerIndex: PlayerIndex): MovementVector {
@@ -85,6 +91,12 @@ export class PlayerInput {
         x += stick.x;
         y += stick.y;
       }
+    }
+
+    if (playerIndex === 0 && this.touch) {
+      const stick = this.touch.getMovement();
+      x += stick.x;
+      y += stick.y;
     }
 
     const length = Math.hypot(x, y);
@@ -130,6 +142,7 @@ export class PlayerInput {
     for (const pad of this.padsFor(playerIndex)) {
       if (this.pendingPadPresses.delete(padPressKey(pad.index, PAD_BUTTONS[action]))) pressed = true;
     }
+    if (playerIndex === 0 && this.touch?.consumePress(action)) pressed = true;
     return pressed;
   }
 

@@ -6,9 +6,48 @@
 
 body {
   background: #0a0a0f;
+  /* No scrolling, zooming or text selection while playing with fingers. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   overflow: hidden;
+}
+
+/* The game is landscape-only: on a phone held upright, ask to rotate. */
+#rotate-hint {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  #rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    background: #0a0a0f;
+    color: #e6edf3;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .rotate-hint__icon {
+    font-size: 64px;
+    animation: rotate-hint 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes rotate-hint {
+  0%, 30% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(90deg); }
 }

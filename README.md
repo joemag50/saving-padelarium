@@ -27,7 +27,7 @@ Hecho con [Phaser 3](https://phaser.io/), TypeScript y Vite.
 
 ## Cómo se juega
 
-- **1 o 2 jugadores** en el mismo teclado, o con controles.
+- **1 o 2 jugadores** en el mismo teclado o con controles; en celular, 1 jugador con botones táctiles.
 - Eliges a tu personaje al inicio y lo usas en toda la partida.
 - Cada nivel tiene dos cuartos. Al entrar a uno, **la cámara se bloquea** hasta que derrotas a todos; luego aparece **"¡ADELANTE! →"**.
 - En el segundo cuarto está el líder del escuadrón. Al vencerlo, acércate a tus amigos para rescatarlos: lo que te cuentan es la única pista de lo que está pasando.
@@ -43,6 +43,10 @@ Hecho con [Phaser 3](https://phaser.io/), TypeScript y Vite.
 | **Control** | Stick / cruceta | `X` | `Y` | `A` |
 
 En los menús: `Enter`, `J` o botón `A` para confirmar; `Esc` o `B` para regresar.
+
+### En celular
+
+En teléfonos y tablets el juego es de **1 jugador** y muestra controles en pantalla: un **joystick** que aparece donde pongas el pulgar (mitad izquierda) y los botones **GOLPE**, **ESQUIVA** y **ESPECIAL** a la derecha. Se juega en horizontal; si el teléfono está vertical, el juego pide girarlo. Para probar el modo táctil en una computadora, agrega `?touch` a la URL.
 
 ### Los niveles
 
@@ -131,7 +135,7 @@ src/
 ├── player/     Jugador, controles y sprites del héroe
 ├── combat/     Vida, golpes, especial de equipo
 ├── world/      Escenario con tiles, colisión de cuerpos, profundidad
-├── ui/         HUD, botones, fondos de menú, tema
+├── ui/         HUD, botones, controles táctiles, fondos de menú, tema
 ├── data/       Niveles, personajes, epílogo
 └── config/     Todos los números ajustables
 ```

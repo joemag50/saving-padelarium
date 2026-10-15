@@ -31,6 +31,8 @@ import { Player } from '../player/Player';
 import { PlayerInput } from '../player/PlayerInput';
 import { soundManager } from '../systems/soundManager';
 import { GameHud } from '../ui/GameHud';
+import { TouchControls } from '../ui/TouchControls';
+import { isTouchDevice } from '../systems/device';
 import { COLORS, textStyle } from '../ui/theme';
 import type { MovementBounds } from '../types/combat';
 import { applyDepthSort, sortByDepth } from '../world/depthSort';
@@ -103,7 +105,8 @@ export class LevelScene extends Phaser.Scene {
 
     const keyboard = this.input.keyboard;
     if (!keyboard) throw new Error('Keyboard input is unavailable.');
-    this.playerInput = new PlayerInput(keyboard, this.input.gamepad, getPlayerCount(this.registry));
+    const touch = isTouchDevice() ? new TouchControls(this) : null;
+    this.playerInput = new PlayerInput(keyboard, this.input.gamepad, getPlayerCount(this.registry), touch);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.playerInput.destroy());
     if (DEBUG_MODE) {
       const defeatAll = () => this.encounterManager.defeatAll(this.time.now);

@@ -4,6 +4,8 @@ import { createButton } from '../ui/createButton';
 import { bindMenuInput } from '../ui/menuInput';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
 import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
+import { isTouchDevice } from '../systems/device';
+import { setPlayerCount } from '../systems/session';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -14,7 +16,14 @@ export class TitleScene extends Phaser.Scene {
     // The artwork already carries the logo and subtitle.
     addMenuBackground(this, MENU_TEXTURES.title);
 
-    const play = () => this.scene.start('PlayerCountScene');
+    const touch = isTouchDevice();
+    const play = () => {
+      // Phones play solo: skip the player count screen.
+      if (!touch) return this.scene.start('PlayerCountScene');
+      setPlayerCount(this.registry, 1);
+      if (this.scale.fullscreen.available && !this.scale.isFullscreen) this.scale.startFullscreen();
+      this.scene.start('LevelSelectScene');
+    };
 
     createButton(this, {
       x: GAME_WIDTH / 2,
@@ -28,7 +37,7 @@ export class TitleScene extends Phaser.Scene {
     });
 
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 50, 'Enter, J o botón A para empezar', textStyle('bodySmall', {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 50, touch ? 'Toca JUGAR para empezar' : 'Enter, J o botón A para empezar', textStyle('bodySmall', {
         color: COLORS.textBright,
       }))
       .setOrigin(0.5);
