@@ -97,6 +97,7 @@ export class LevelScene extends Phaser.Scene {
       this.hud.setPlayerHp(index, player.combatant.health, player.combatant.maxHealth);
     }
     this.encounterManager = new EncounterManager(this, {
+      onBossAppear: (label) => this.hud.showBossBar(label),
       onBossHealth: (current, max) => this.hud.setBossHealth(current, max),
       onBossFightEnd: () => this.hud.hideBossBar(),
       setHint: (text) => this.hud.setInteractHint(text),
@@ -383,7 +384,6 @@ export class LevelScene extends Phaser.Scene {
       this.level.boss,
       this.level.finalBoss === true,
     );
-    if (this.level.finalBoss) this.hud.showBossBar(this.level.boss.label);
     this.encounterManager.startWaves(
       waves,
       LevelScene.roomArena(ENCOUNTER_CAMERA_X.encounter2),
@@ -400,21 +400,35 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private tryPairSpecial(time: number, targets: import('../types/combat').CombatTarget[]) {
-    if (!this.pairSpecial.canActivate()) return;
-    if (!this.playerInput.specialPressedByAny(this.players.length)) return;
+    // Always read the button, so presses made before the gauge filled don't fire it later.
+    const presserIndex = this.playerInput.specialPressedBy(this.players.length);
+    if (presserIndex === null || !this.pairSpecial.canActivate()) return;
+    const presser = this.players[presserIndex];
+    if (!presser?.isAlive) return;
 
-    const originX = this.players.reduce((sum, player) => sum + player.x, 0) / this.players.length;
-    const originY = this.players.reduce((sum, player) => sum + player.y, 0) / this.players.length;
-    const hits = this.pairSpecial.activate(time, originX, originY, targets);
-    if (hits > 0) {
-      soundManager.playSpecial();
-      this.hitStopUntil = time + COMBAT.hitStopMs * 2;
-      this.cameras.main.shake(120, 0.004);
-      this.add
-        .circle(originX, originY, COMBAT.specialRadius, 0xfbbf24, 0.25)
-        .setDepth(originY + 1)
-        .setScale(0.2);
-    }
+    // It goes off around whoever pressed it.
+    const hits = this.pairSpecial.activate(time, presser.x, presser.y, targets);
+    soundManager.playSpecial();
+    this.cameras.main.shake(hits > 0 ? 160 : 90, hits > 0 ? 0.005 : 0.002);
+    if (hits > 0) this.hitStopUntil = time + COMBAT.hitStopMs * 2;
+    this.showSpecialWave(presser.x, presser.y);
+  }
+
+  /** Golden shockwave on the floor, showing the special's reach even when it hits nobody. */
+  private showSpecialWave(x: number, y: number) {
+    const wave = this.add
+      .ellipse(x, y, COMBAT.specialRadius * 2, COMBAT.specialRadius, 0xfbbf24, 0.35)
+      .setStrokeStyle(4, 0xfde68a, 0.9)
+      .setDepth(y + 1)
+      .setScale(0.2);
+    this.tweens.add({
+      targets: wave,
+      scale: 1.1,
+      alpha: 0,
+      duration: 420,
+      ease: 'Cubic.easeOut',
+      onComplete: () => wave.destroy(),
+    });
   }
 
   private checkEncounterFailure() {

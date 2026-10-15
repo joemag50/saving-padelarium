@@ -116,8 +116,16 @@ export class PlayerInput {
     return this.justPressed(playerIndex, 'dodge');
   }
 
-  specialPressedByAny(activeCount: number) {
-    return this.pressedByAny(activeCount, 'special');
+  /**
+   * Which player pressed special this frame (or null). Reads every player so a press made
+   * while the gauge wasn't full is dropped, not saved for later.
+   */
+  specialPressedBy(activeCount: number): PlayerIndex | null {
+    let presser: PlayerIndex | null = null;
+    for (let index = 0; index < activeCount; index += 1) {
+      if (this.justPressed(index as PlayerIndex, 'special') && presser === null) presser = index as PlayerIndex;
+    }
+    return presser;
   }
 
   /** Attack doubles as the interact/confirm button (inspect objects, close messages). */

@@ -22,7 +22,9 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, TitleScene, PlayerCountScene, LevelSelectScene, CharacterSelectScene, LevelScene, EndScene, PauseScene],
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
+    // The container (style.css) already centers the canvas; Phaser centering on top of it
+    // added its own margin and pushed the game off-center.
+    autoCenter: Phaser.Scale.NO_CENTER,
   },
 };
 

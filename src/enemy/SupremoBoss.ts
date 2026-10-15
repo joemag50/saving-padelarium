@@ -116,6 +116,7 @@ export class SupremoBoss implements EncounterActor {
 
     this.telegraph = this.scene.add.graphics();
     this.combatant = new Combatant(FINAL_BOSS.maxHealth);
+    context.hooks.onBossAppear(FINAL_BOSS.label);
     context.hooks.onBossHealth(this.combatant.health, this.combatant.maxHealth);
 
     if (DEBUG_HITBOXES) this.hitboxDebug = this.scene.add.graphics();
@@ -306,6 +307,8 @@ export class SupremoBoss implements EncounterActor {
     if (!this.alive) return;
     this.alive = false;
     this.context.hooks.setHint('');
+    // Removed mid-fight (the team wiped and the fight restarts): its bar goes with it.
+    this.context.hooks.onBossFightEnd();
     this.telegraph.destroy();
     this.hitboxDebug?.destroy();
     this.container.destroy();

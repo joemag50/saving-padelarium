@@ -35,7 +35,10 @@ export interface EncounterActor extends CombatTarget, BodyActor {
 
 /** How the encounter talks back to the level (boss health bar, hints). */
 export type EncounterHooks = {
+  /** The final boss just entered the fight (show its health bar). */
+  onBossAppear(label: string): void;
   onBossHealth(current: number, max: number): void;
+  /** The boss is beaten or removed (hide its health bar). */
   onBossFightEnd(): void;
   setHint(text: string): void;
 };
