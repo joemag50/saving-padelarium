@@ -9,6 +9,7 @@ import { CharacterSelectScene } from './scenes/CharacterSelectScene';
 import { LevelScene } from './scenes/LevelScene';
 import { EndScene } from './scenes/EndScene';
 import { PauseScene } from './scenes/PauseScene';
+import { listenForInstallPrompt } from './systems/install';
 import './style.css';
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -28,6 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
   },
 };
 
+listenForInstallPrompt();
 const game = new Phaser.Game(config);
 
 // Phone browsers resize the visible area when their toolbars show/hide or the phone rotates.
