@@ -134,12 +134,20 @@ export class SupremoBoss implements EncounterActor {
   }
 
   get hurtbox(): HitboxRect {
+    // Centered at the same height as the players' swing (36px above the feet), so hits
+    // connect from the same depth range as against any other enemy.
     return createCenteredHitbox(
       this.container.x,
-      this.container.y - FINAL_BOSS.body.height / 2,
+      this.container.y - 36,
       FINAL_BOSS.body.width + COMBAT.hurtboxPadding,
       FINAL_BOSS.body.height * 0.75,
     );
+  }
+
+  /** Debug (N key): skip straight to the knockout, as if the pair special landed. */
+  forceDefeat(now: number) {
+    if (!this.isActive) return;
+    this.finish(now);
   }
 
   getBodySnapshot() {

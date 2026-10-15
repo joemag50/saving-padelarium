@@ -3,6 +3,8 @@ import Phaser from 'phaser';
 type MenuHandlers = {
   left?: () => void;
   right?: () => void;
+  up?: () => void;
+  down?: () => void;
   confirm?: () => void;
   back?: () => void;
   /** Extra keyboard shortcuts keyed by `KeyboardEvent.key`, e.g. `{ '1': ... }`. */
@@ -13,7 +15,7 @@ type MenuHandlers = {
 const INPUT_GRACE_MS = 300;
 
 /** Standard-mapping gamepad button indices. */
-const PAD = { a: 0, b: 1, x: 2, start: 9, left: 14, right: 15 } as const;
+const PAD = { a: 0, b: 1, x: 2, start: 9, up: 12, down: 13, left: 14, right: 15 } as const;
 
 /** Lets menus be driven by keyboard or any gamepad, in addition to mouse/touch. */
 export function bindMenuInput(scene: Phaser.Scene, handlers: MenuHandlers) {
@@ -33,6 +35,14 @@ export function bindMenuInput(scene: Phaser.Scene, handlers: MenuHandlers) {
       case 'd':
       case 'D':
         return handlers.right?.();
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        return handlers.up?.();
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        return handlers.down?.();
       case 'Enter':
       case ' ':
       // The attack keys double as confirm, matching in-game interactions.
@@ -54,6 +64,10 @@ export function bindMenuInput(scene: Phaser.Scene, handlers: MenuHandlers) {
         return handlers.left?.();
       case PAD.right:
         return handlers.right?.();
+      case PAD.up:
+        return handlers.up?.();
+      case PAD.down:
+        return handlers.down?.();
       case PAD.a:
       case PAD.x:
       case PAD.start:

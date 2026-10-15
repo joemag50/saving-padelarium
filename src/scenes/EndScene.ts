@@ -6,9 +6,10 @@ import { markLevelCompleted } from '../systems/rosterProgress';
 import { getCurrentLevel, setCurrentLevel } from '../systems/session';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
 import { COLORS, textStyle } from '../ui/theme';
-import { createButton } from '../ui/createButton';
+import { createButton, createFocusRing } from '../ui/createButton';
 import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
 import { bindMenuInput } from '../ui/menuInput';
+import { BOTTOM_BUTTON_Y } from '../ui/layout';
 
 /** Delay between epilogue lines appearing. */
 const EPILOGUE_LINE_MS = 1600;
@@ -44,7 +45,7 @@ export class EndScene extends Phaser.Scene {
 
     createButton(this, {
       x: GAME_WIDTH / 2 - 140,
-      y: GAME_HEIGHT - 110,
+      y: BOTTOM_BUTTON_Y,
       width: 260,
       height: 52,
       label: 'SIGUIENTE NIVEL',
@@ -55,7 +56,7 @@ export class EndScene extends Phaser.Scene {
 
     createButton(this, {
       x: GAME_WIDTH / 2 + 140,
-      y: GAME_HEIGHT - 110,
+      y: BOTTOM_BUTTON_Y,
       width: 240,
       height: 52,
       label: 'MENÚ PRINCIPAL',
@@ -64,13 +65,26 @@ export class EndScene extends Phaser.Scene {
       onClick: toMenu,
     });
 
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 50, 'Enter, J o botón A: siguiente nivel · Esc o B: menú', textStyle('label', {
-        color: COLORS.textMuted,
-      }))
-      .setOrigin(0.5);
+    // ← → pick a button, confirm presses it. Starts on SIGUIENTE NIVEL.
+    const buttons = [
+      { x: GAME_WIDTH / 2 - 140, width: 260, action: goToNext },
+      { x: GAME_WIDTH / 2 + 140, width: 240, action: toMenu },
+    ];
+    let focused = 0;
+    const focusRing = createFocusRing(this);
+    const showFocus = () => focusRing.show(buttons[focused].x, BOTTOM_BUTTON_Y, buttons[focused].width, 52);
+    const move = (step: number) => {
+      focused = Phaser.Math.Wrap(focused + step, 0, buttons.length);
+      showFocus();
+    };
+    showFocus();
 
-    bindMenuInput(this, { confirm: goToNext, back: toMenu });
+    bindMenuInput(this, {
+      left: () => move(-1),
+      right: () => move(1),
+      confirm: () => buttons[focused].action(),
+      back: toMenu,
+    });
   }
 
   /** After the last level: the epilogue appears line by line, then the cast and a way back to the menu. */
@@ -113,7 +127,7 @@ export class EndScene extends Phaser.Scene {
 
     createButton(this, {
       x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT - 72,
+      y: BOTTOM_BUTTON_Y + 20,
       width: 260,
       height: 52,
       label: 'MENÚ PRINCIPAL',
@@ -122,9 +136,6 @@ export class EndScene extends Phaser.Scene {
       onClick: () => this.scene.start('TitleScene'),
     });
 
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 26, 'Enter, J o botón A: continuar', textStyle('label', { color: COLORS.textMuted }))
-      .setOrigin(0.5);
 
     bindMenuInput(this, { confirm: toMenu, back: toMenu });
   }

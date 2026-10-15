@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import { setPlayerCount } from '../systems/session';
 import type { PlayerCount } from '../types/player';
 import { createButton } from '../ui/createButton';
 import { bindMenuInput } from '../ui/menuInput';
 import { COLORS, textStyle } from '../ui/theme';
 import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
+import { BOTTOM_BUTTON_Y } from '../ui/layout';
 
 const OPTIONS: readonly { count: PlayerCount; label: string; detail: string; x: number }[] = [
   {
@@ -77,7 +78,7 @@ export class PlayerCountScene extends Phaser.Scene {
 
     createButton(this, {
       x: 120,
-      y: GAME_HEIGHT - 88,
+      y: BOTTOM_BUTTON_Y,
       width: 160,
       height: 44,
       label: 'ATRÁS',

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import { LEVELS, type LevelDefinition } from '../data/levels';
 import { getRosterCharacter } from '../data/roster';
 import { isLevelCompleted, isLevelUnlocked } from '../systems/rosterProgress';
@@ -9,6 +9,7 @@ import { bindMenuInput } from '../ui/menuInput';
 import { COLORS, textStyle } from '../ui/theme';
 import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
 import { isTouchDevice } from '../systems/device';
+import { BOTTOM_BUTTON_Y } from '../ui/layout';
 
 const GRID = {
   columns: 3,
@@ -60,7 +61,7 @@ export class LevelSelectScene extends Phaser.Scene {
 
     createButton(this, {
       x: 120,
-      y: GAME_HEIGHT - 88,
+      y: BOTTOM_BUTTON_Y,
       width: 160,
       height: 44,
       label: 'ATRÁS',
@@ -68,12 +69,6 @@ export class LevelSelectScene extends Phaser.Scene {
       hoverColor: COLORS.propBorder,
       onClick: () => this.back(),
     });
-
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 44, '← → para elegir · Enter, J o botón A para jugar · Esc o B para volver', textStyle('label', {
-        color: COLORS.textMuted,
-      }))
-      .setOrigin(0.5);
 
     this.select(this.initialIndex());
     bindMenuInput(this, {
@@ -98,7 +93,7 @@ export class LevelSelectScene extends Phaser.Scene {
     const { cardWidth, cardHeight } = GRID;
 
     const background = this.add
-      .rectangle(x, y, cardWidth, cardHeight, unlocked ? level.palette.floor : 0x2b303b)
+      .rectangle(x, y, cardWidth, cardHeight, unlocked ? level.palette.card : 0x2b303b)
       .setStrokeStyle(2, COLORS.propBorder)
       .setAlpha(unlocked ? 1 : 0.5);
 

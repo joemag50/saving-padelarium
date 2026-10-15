@@ -93,6 +93,11 @@ export class Player {
     }
   }
 
+  /** The character's color (HUD portrait and sprite tint). */
+  get color() {
+    return this.tintColor;
+  }
+
   get x() {
     return this.container.x;
   }

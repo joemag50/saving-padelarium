@@ -1,8 +1,8 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
-/** Horizontal extent of the gray-box reception slice. */
-export const LEVEL_WIDTH = 2400;
+/** Every level is two rooms, each exactly one screen wide. */
+export const LEVEL_WIDTH = GAME_WIDTH * 2;
 export const LEVEL_HEIGHT = 720;
 
 /** Beat-'em-up walk lane on the Y axis (screen depth). Applies to the whole level. */

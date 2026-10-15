@@ -1,7 +1,7 @@
 export const COMBAT = {
   depthTolerance: 36,
   hitStopMs: 60,
-  playerMaxHealth: 100,
+  playerMaxHealth: 250,
   playerAttackDamage: 12,
   attackDurationMs: 220,
   attackActiveStartMs: 60,
@@ -19,5 +19,6 @@ export const COMBAT = {
   specialGainPerHit: 12,
   specialDamage: 28,
   specialRadius: 140,
-  recoveryBetweenEncounters: 40,
+  /** Health given back between the two fights of a level (40% of max). */
+  recoveryBetweenEncounters: 100,
 } as const;

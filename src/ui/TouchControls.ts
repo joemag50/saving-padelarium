@@ -70,6 +70,12 @@ export class TouchControls {
     return this.pending.delete(action);
   }
 
+  /** Drops any held joystick and pending taps (e.g. fingers lifted while paused). */
+  reset() {
+    this.pending.clear();
+    this.onUp({ id: this.joystickPointerId } as Phaser.Input.Pointer);
+  }
+
   destroy() {
     this.scene.input.off(Phaser.Input.Events.POINTER_DOWN, this.onDown, this);
     this.scene.input.off(Phaser.Input.Events.POINTER_MOVE, this.onMove, this);

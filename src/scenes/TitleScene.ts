@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
-import { COLORS, textStyle } from '../ui/theme';
+import { COLORS } from '../ui/theme';
 import { createButton } from '../ui/createButton';
 import { bindMenuInput } from '../ui/menuInput';
-import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
 import { isTouchDevice } from '../systems/device';
 import { setPlayerCount } from '../systems/session';
+import { BOTTOM_BUTTON_Y } from '../ui/layout';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -27,7 +28,7 @@ export class TitleScene extends Phaser.Scene {
 
     createButton(this, {
       x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT - 100,
+      y: BOTTOM_BUTTON_Y - 20,
       width: 280,
       height: 56,
       label: 'JUGAR',
@@ -36,11 +37,6 @@ export class TitleScene extends Phaser.Scene {
       onClick: play,
     });
 
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 50, touch ? 'Toca JUGAR para empezar' : 'Enter, J o botón A para empezar', textStyle('bodySmall', {
-        color: COLORS.textBright,
-      }))
-      .setOrigin(0.5);
 
     bindMenuInput(this, { confirm: play });
   }

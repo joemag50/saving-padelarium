@@ -17,7 +17,7 @@ Hecho con [Phaser 3](https://phaser.io/), TypeScript y Vite.
 | | |
 |---|---|
 | ![Nivel 1, la recepción](docs/screenshots/recepcion.jpg) | ![Distintos tipos de enemigo](docs/screenshots/enemigos.jpg) |
-| **Nivel 1 — La recepción.** Escenario hecho con tiles; la cámara se bloquea en cada pelea. | **Seis tipos de enemigo.** El Tirador avisa con una línea roja antes de lanzarte una pelota. |
+| **Nivel 1 — La recepción.** Paredes lisas y piso en perspectiva; la cámara se bloquea en cada pelea. | **Seis tipos de enemigo.** El Tirador avisa con una línea roja antes de lanzarte una pelota. |
 | ![El jefe final sacando pelotas](docs/screenshots/jefe.jpg) | ![Rayo abductor del jefe final](docs/screenshots/abduccion.jpg) |
 | **El Supremo Galáctico, fase 1.** Regrésale la pelota con un golpe para aturdirlo. | **Fase 3.** Los rayos abductores atrapan; tu pareja te libera golpeando el rayo. |
 
@@ -123,7 +123,7 @@ También dibuja las cajas de golpe y expone el juego en la consola como `window.
 | Personajes (nombre y color) | `src/data/roster.ts` |
 | Texto del epílogo | `src/data/epilogue.ts` |
 | Tipografía y estilos de texto | `src/ui/theme.ts` (`FONT_FAMILY`, `TEXT_VARIANTS`) |
-| Paredes, pisos y muebles de un nivel | bloque `scenery` en `src/data/levels.ts`; recortes en `src/world/tileAssets.ts` |
+| Colores de paredes y tipo de piso de cada cuarto | `src/data/stages.ts` (dibujados por `src/world/stage.ts`) |
 
 ### Estructura
 
@@ -134,7 +134,7 @@ src/
 ├── enemy/      Enemigos (InvaderEnemy), jefe final y sus pelotas, rayos y humo
 ├── player/     Jugador, controles y sprites del héroe
 ├── combat/     Vida, golpes, especial de equipo
-├── world/      Escenario con tiles, colisión de cuerpos, profundidad
+├── world/      Escenarios pintados (paredes y pisos), colisión de cuerpos, profundidad
 ├── ui/         HUD, botones, controles táctiles, fondos de menú, tema
 ├── data/       Niveles, personajes, epílogo
 └── config/     Todos los números ajustables
@@ -146,7 +146,7 @@ src/
 
 Los 6 niveles se pueden jugar de principio a fin, con historia, jefe final y epílogo. Pendiente:
 
-- El nivel 1 tiene escenario con tiles; los niveles 2 a 6 todavía son cajas grises.
+- Los escenarios son paredes lisas y pisos pintados por código; faltan objetos (mesas, columnas, muebles).
 - Los enemigos y el jefe son rectángulos de color, a la espera de sus sprites.
 - Los líderes de cada nivel aún no tienen un ataque propio de su nivel.
 - La dificultad está ajustada con pruebas automáticas; falta afinarla jugando.
@@ -154,5 +154,5 @@ Los 6 niveles se pueden jugar de principio a fin, con historia, jefe final y ep�
 ## Créditos y licencias
 
 - **Arte de portada y fondo de menús:** hecho para este juego por el autor.
-- **Escenario:** pack *Modern Interiors* (versión gratuita) de LimeZu. Su licencia permite usarlo solo en **proyectos no comerciales**; está en `public/assets/tiles/LICENSE.txt`. Si el juego se vende algún día, hay que comprar la versión completa.
+- **Tiles (cargados para los objetos que vienen):** pack *Modern Interiors* (versión gratuita) de LimeZu. Su licencia permite usarlo solo en **proyectos no comerciales**; está en `public/assets/tiles/LICENSE.txt`. Si el juego se vende algún día, hay que comprar la versión completa.
 - **Sprites del héroe:** plantilla en `public/assets/individual_sheets/`.

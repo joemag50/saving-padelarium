@@ -1,6 +1,7 @@
 import type { WaveKinds } from '../config/level';
 import type { EnemyStats } from '../config/enemies';
-import type { SceneryDefinition } from '../world/scenery';
+import type { StageDefinition } from '../world/stage';
+import { STAGES } from './stages';
 import type { RosterCharacterId } from './roster';
 
 /**
@@ -12,11 +13,10 @@ export type LevelDefinition = {
   id: number;
   title: string;
   intro: string;
-  palette: { background: number; floor: number };
-  /** Labels for zones A (start), B (hallway) and C (boss + rescue). */
-  zones: readonly [string, string, string];
-  /** Labels for the decor props in zones A, B and C. */
-  props: { cover: string; hallway: string; court: string };
+  /** `background` behind the level; `card` tints its card on the level select screen. */
+  palette: { background: number; card: number };
+  /** Names of rooms A (first fight) and B (leader + rescue). Not shown in game; for reference. */
+  zones: readonly [string, string];
   objectives: {
     start: string;
     encounter1: string;
@@ -35,8 +35,8 @@ export type LevelDefinition = {
   finalBoss?: boolean;
   /** `line` is what the rescued friends say: it's how the story's clues are told. */
   rescue: { characters: readonly RosterCharacterId[]; line: string };
-  /** Tile-based walls, floors and decor. Levels without it render as gray boxes. */
-  scenery?: SceneryDefinition;
+  /** Painted walls and floors for the level's two rooms (see `data/stages.ts`). */
+  stage: StageDefinition;
 };
 
 export const LEVELS: readonly LevelDefinition[] = [
@@ -45,9 +45,9 @@ export const LEVELS: readonly LevelDefinition[] = [
     title: 'La recepción',
     intro:
       'Unos extraterrestres tomaron Padelirium.\nEl grupo quedó separado y nadie contesta el chat.',
-    palette: { background: 0x1a1f2e, floor: 0x3a3f4b },
-    zones: ['ZONA A — RECEPCIÓN', 'ZONA B — PASILLO', 'ZONA C — CANCHA'],
-    props: { cover: 'MOSTRADOR', hallway: 'COLUMNA', court: 'COLUMNA' },
+    palette: { background: 0x1a1f2e, card: 0x3a3f4b },
+    zones: ['ZONA A — RECEPCIÓN', 'ZONA B — CANCHA'],
+    stage: STAGES.recepcion,
     objectives: {
       start: 'Encuentra a los demás',
       encounter1: 'Despeja la recepción',
@@ -67,41 +67,15 @@ export const LEVELS: readonly LevelDefinition[] = [
       characters: ['rody', 'alberto'],
       line: '"¡Se los llevaron en una luz verde!\nNos escondimos debajo del mostrador.\nLas cajas decían ‘Eventos Gal…’, no se leía más."',
     },
-    scenery: {
-      rooms: [
-        { fromX: 0, toX: 1040, wall: 'woodLight', floor: 'yellowTile' },
-        { fromX: 1040, toX: 1720, wall: 'grayBlue', floor: 'concrete' },
-        { fromX: 1720, toX: 2400, wall: 'mint', floor: 'blueTile' },
-      ],
-      decor: [
-        // Recepción
-        { frame: 'plantTree', x: 50, mount: 'floor' },
-        { frame: 'window', x: 180, mount: 'wall', y: 200 },
-        { frame: 'sofa', x: 340, mount: 'floor' },
-        { frame: 'aquarium', x: 340, mount: 'wall', y: 160 },
-        { frame: 'paintingSun', x: 620, mount: 'wall', y: 190 },
-        { frame: 'snackFridge', x: 830, mount: 'floor' },
-        // Pasillo
-        { frame: 'elevator', x: 1220, mount: 'floor' },
-        { frame: 'plantSmall', x: 1360, mount: 'floor' },
-        { frame: 'paintingForest', x: 1600, mount: 'wall', y: 190 },
-        // Cancha
-        { frame: 'glassDoors', x: 1880, mount: 'floor' },
-        { frame: 'palm', x: 2030, mount: 'floor' },
-        { frame: 'curtainWindow', x: 2220, mount: 'wall', y: 235 },
-        { frame: 'plantTree', x: 2360, mount: 'floor' },
-      ],
-      props: { cover: 'counter' },
-    },
   },
   {
     id: 2,
     title: 'Los vestidores',
     intro:
       'Rody y Alberto vieron a Arturo y a Fisam correr hacia los vestidores.\nDesde ahí sale una niebla verde muy sospechosa.',
-    palette: { background: 0x14231f, floor: 0x34433e },
-    zones: ['ZONA A — VESTIDORES', 'ZONA B — CASILLEROS', 'ZONA C — REGADERAS'],
-    props: { cover: 'BANCAS', hallway: 'CASILLEROS', court: 'CASILLEROS' },
+    palette: { background: 0x14231f, card: 0x34433e },
+    zones: ['ZONA A — VESTIDORES', 'ZONA B — REGADERAS'],
+    stage: STAGES.vestidores,
     objectives: {
       start: 'Encuentra a Arturo y a Fisam',
       encounter1: 'Despeja los vestidores',
@@ -130,9 +104,9 @@ export const LEVELS: readonly LevelDefinition[] = [
     title: 'La cafetería',
     intro:
       'Arturo jura que Armando y Lucía se escondieron en la cafetería.\nUn zumbido alienígena no deja pensar a nadie.',
-    palette: { background: 0x231a2b, floor: 0x433a4d },
-    zones: ['ZONA A — CAFETERÍA', 'ZONA B — TERRAZA', 'ZONA C — COCINA'],
-    props: { cover: 'BARRA', hallway: 'MESAS', court: 'REFRIGERADOR' },
+    palette: { background: 0x231a2b, card: 0x433a4d },
+    zones: ['ZONA A — CAFETERÍA', 'ZONA B — COCINA'],
+    stage: STAGES.cafeteria,
     objectives: {
       start: 'Encuentra a Armando y a Lucía',
       encounter1: 'Despeja la cafetería',
@@ -161,9 +135,9 @@ export const LEVELS: readonly LevelDefinition[] = [
     title: 'El estacionamiento',
     intro:
       'Armando vio a Juaquin y a Flor cerca del camión de los trofeos.\nUn rayo abductor ilumina todo el estacionamiento.',
-    palette: { background: 0x1c1f24, floor: 0x45484f },
-    zones: ['ZONA A — ENTRADA', 'ZONA B — CAJONES', 'ZONA C — ZONA DE CARGA'],
-    props: { cover: 'CAMIONETA', hallway: 'CONOS', court: 'CAMIÓN' },
+    palette: { background: 0x1c1f24, card: 0x45484f },
+    zones: ['ZONA A — ENTRADA', 'ZONA B — ZONA DE CARGA'],
+    stage: STAGES.estacionamiento,
     objectives: {
       start: 'Encuentra a Juaquin y a Flor',
       encounter1: 'Despeja la entrada',
@@ -192,9 +166,9 @@ export const LEVELS: readonly LevelDefinition[] = [
     title: 'La oficina',
     intro:
       'Juaquin dice que Fátima y Casillas quedaron atrapados en la oficina.\nHay luces láser alienígenas por todo el pasillo.',
-    palette: { background: 0x26191b, floor: 0x4a3a3c },
-    zones: ['ZONA A — PASILLO ADMINISTRATIVO', 'ZONA B — ARCHIVO', 'ZONA C — OFICINA DEL DUEÑO'],
-    props: { cover: 'ESCRITORIO', hallway: 'ARCHIVEROS', court: 'LIBRERO' },
+    palette: { background: 0x26191b, card: 0x4a3a3c },
+    zones: ['ZONA A — PASILLO ADMINISTRATIVO', 'ZONA B — OFICINA DEL DUEÑO'],
+    stage: STAGES.oficina,
     objectives: {
       start: 'Encuentra a Fátima y a Casillas',
       encounter1: 'Despeja el pasillo',
@@ -226,9 +200,9 @@ export const LEVELS: readonly LevelDefinition[] = [
     title: 'La cancha central',
     intro:
       'Todos juntos hacia la cancha central. Ahí tienen a Cris y a Crispy.\nY ahí está esperando el "Supremo Galáctico".',
-    palette: { background: 0x10182b, floor: 0x2f3d5c },
-    zones: ['ZONA A — GRADAS', 'ZONA B — TÚNEL', 'ZONA C — CANCHA CENTRAL'],
-    props: { cover: 'GRADAS', hallway: 'BANDERAS', court: 'RED' },
+    palette: { background: 0x10182b, card: 0x2f3d5c },
+    zones: ['ZONA A — GRADAS', 'ZONA B — CANCHA CENTRAL'],
+    stage: STAGES.canchaCentral,
     objectives: {
       start: 'Encuentra a Cris y a Crispy',
       encounter1: 'Despeja las gradas',

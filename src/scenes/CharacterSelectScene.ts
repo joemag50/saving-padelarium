@@ -6,7 +6,7 @@ import {
   type RosterCharacter,
   type RosterCharacterId,
 } from '../data/roster';
-import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
+import { GAME_WIDTH } from '../config/constants';
 import {
   getLockedHint,
   getUnlockedCharacterIds,
@@ -17,9 +17,10 @@ import {
 import { getCurrentLevel, getPlayerCount } from '../systems/session';
 import type { PlayerCount } from '../types/player';
 import { COLORS, textStyle } from '../ui/theme';
-import { createButton } from '../ui/createButton';
+import { createButton, createFocusRing } from '../ui/createButton';
 import { bindMenuInput } from '../ui/menuInput';
 import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
+import { BOTTOM_BUTTON_Y } from '../ui/layout';
 
 const GRID = {
   columns: 5,
@@ -37,12 +38,20 @@ export class CharacterSelectScene extends Phaser.Scene {
   private startButton?: Phaser.GameObjects.Container;
   private cardBackgrounds = new Map<RosterCharacterId, Phaser.GameObjects.Rectangle>();
   private cardStatusTexts = new Map<RosterCharacterId, Phaser.GameObjects.Text>();
+  /** Card centers in roster order, laid out row by row. */
+  private cardRows: { id: RosterCharacterId; x: number; y: number }[][] = [];
+  /** Keyboard/gamepad cursor: a card (row/column) or one of the bottom buttons. */
+  private cursor: { row: number; column: number } | 'back' | 'start' = { row: 0, column: 0 };
+  private focusRing!: ReturnType<typeof createFocusRing>;
 
   constructor() {
     super({ key: 'CharacterSelectScene' });
   }
 
   create() {
+    this.cardRows = [];
+    this.cardBackgrounds.clear();
+    this.cardStatusTexts.clear();
     this.playerCount = getPlayerCount(this.registry);
     this.party = this.initialParty();
     this.cameras.main.setBackgroundColor(COLORS.background);
@@ -55,9 +64,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const instructions =
-      this.playerCount === 1
-        ? 'Elige a un amigo desbloqueado.'
-        : 'Elijan 2 amigos desbloqueados. Clic de nuevo para quitar.';
+      this.playerCount === 1 ? 'Elige a un amigo desbloqueado.' : 'Elijan 2 amigos desbloqueados. Elige de nuevo para quitar.';
     this.add
       .text(GAME_WIDTH / 2, 88, instructions, textStyle('bodySmall', {
         color: COLORS.textMuted,
@@ -79,7 +86,7 @@ export class CharacterSelectScene extends Phaser.Scene {
 
     this.startButton = createButton(this, {
       x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT - 88,
+      y: BOTTOM_BUTTON_Y,
       width: 280,
       height: 52,
       label: 'EMPEZAR',
@@ -89,20 +96,21 @@ export class CharacterSelectScene extends Phaser.Scene {
     });
     this.refreshUi();
 
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 44, 'Enter, J o botón A para empezar · Esc o B para volver', textStyle('label', {
-        color: COLORS.textMuted,
-      }))
-      .setOrigin(0.5);
-
+    this.focusRing = createFocusRing(this);
+    this.cursor = this.initialCursor();
+    this.drawCursor();
     bindMenuInput(this, {
-      confirm: () => this.startLevel(),
+      left: () => this.moveCursor(0, -1),
+      right: () => this.moveCursor(0, 1),
+      up: () => this.moveCursor(-1, 0),
+      down: () => this.moveCursor(1, 0),
+      confirm: () => this.confirmCursor(),
       back: () => this.scene.start('LevelSelectScene'),
     });
 
     createButton(this, {
       x: 120,
-      y: GAME_HEIGHT - 88,
+      y: BOTTOM_BUTTON_Y,
       width: 160,
       height: 44,
       label: 'ATRÁS',
@@ -117,6 +125,61 @@ export class CharacterSelectScene extends Phaser.Scene {
     const previous = (this.registry.get('partySelection') as PartySelection | undefined) ?? [];
     const candidates = [...previous, ...getDefaultParty(this.playerCount), ...getUnlockedCharacterIds()];
     return sanitizePartySelection(candidates, this.playerCount);
+  }
+
+  /** Starts on the first picked friend, so pressing confirm twice keeps the last team. */
+  private initialCursor() {
+    const picked = this.party[0];
+    for (const [row, cards] of this.cardRows.entries()) {
+      const column = cards.findIndex((card) => card.id === picked);
+      if (column >= 0) return { row, column };
+    }
+    return { row: 0, column: 0 };
+  }
+
+  /** Arrows walk the card grid; below the last row are ATRÁS (left) and EMPEZAR (right). */
+  private moveCursor(rowStep: number, columnStep: number) {
+    const lastRow = this.cardRows.length - 1;
+    const cursor = this.cursor;
+    if (cursor === 'back' || cursor === 'start') {
+      if (columnStep !== 0) this.cursor = cursor === 'back' ? 'start' : 'back';
+      if (rowStep < 0) {
+        const row = this.cardRows[lastRow];
+        this.cursor = { row: lastRow, column: cursor === 'back' ? 0 : row.length - 1 };
+      }
+    } else if (rowStep > 0 && cursor.row === lastRow) {
+      this.cursor = 'start';
+    } else {
+      const row = Phaser.Math.Clamp(cursor.row + rowStep, 0, lastRow);
+      const width = this.cardRows[row].length;
+      // Moving between rows of different length keeps roughly the same horizontal spot.
+      const column = rowStep !== 0
+        ? Math.min(cursor.column, width - 1)
+        : Phaser.Math.Wrap(cursor.column + columnStep, 0, width);
+      this.cursor = { row, column };
+    }
+    this.drawCursor();
+  }
+
+  private confirmCursor() {
+    const cursor = this.cursor;
+    if (cursor === 'start') return this.startLevel();
+    if (cursor === 'back') return this.scene.start('LevelSelectScene');
+    const card = this.cardRows[cursor.row][cursor.column];
+    // Solo: confirming the friend you already have just moves on (no accidental unpick).
+    const alreadyPicked = this.playerCount === 1 && this.party.includes(card.id);
+    if (!alreadyPicked) this.toggleCharacter(card.id);
+    // Team complete: jump to EMPEZAR so one more press starts the level.
+    if (this.party.length === this.playerCount && this.party.includes(card.id)) this.cursor = 'start';
+    this.drawCursor();
+  }
+
+  private drawCursor() {
+    const cursor = this.cursor;
+    if (cursor === 'start') return this.focusRing.show(GAME_WIDTH / 2, BOTTOM_BUTTON_Y, 280, 52);
+    if (cursor === 'back') return this.focusRing.show(120, BOTTOM_BUTTON_Y, 160, 44);
+    const card = this.cardRows[cursor.row][cursor.column];
+    this.focusRing.show(card.x, card.y, GRID.cardWidth, GRID.cardHeight);
   }
 
   private startLevel() {
@@ -138,6 +201,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       const x = rowOriginX + column * (cardWidth + gapX) + cardWidth / 2;
       const y = topY + row * (cardHeight + gapY) + cardHeight / 2;
 
+      (this.cardRows[row] ??= []).push({ id: character.id, x, y });
       this.createRosterCard(character, x, y, cardWidth, cardHeight);
     }
   }
@@ -165,7 +229,19 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.cardStatusTexts.set(character.id, statusText);
 
     background.setInteractive({ useHandCursor: true });
-    background.on('pointerdown', () => this.toggleCharacter(character.id));
+    background.on('pointerdown', () => {
+      this.toggleCharacter(character.id);
+      this.cursor = this.cursorFor(character.id);
+      this.drawCursor();
+    });
+  }
+
+  private cursorFor(id: RosterCharacterId) {
+    for (const [row, cards] of this.cardRows.entries()) {
+      const column = cards.findIndex((card) => card.id === id);
+      if (column >= 0) return { row, column };
+    }
+    return this.cursor;
   }
 
   private toggleCharacter(id: RosterCharacterId) {

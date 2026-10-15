@@ -6,7 +6,6 @@ import {
   buildEncounter2Waves,
   ENCOUNTER_CAMERA_X,
   INTERACT_POINTS,
-  LEVEL_PROPS,
   LEVEL_ZONES,
 } from '../config/level';
 import {
@@ -17,7 +16,6 @@ import {
   LEVEL_WIDTH,
   PLAYER,
   SPAWN_POINTS,
-  WALK_LANE,
 } from '../config/constants';
 import { EncounterManager } from '../core/EncounterManager';
 import type { LevelState } from '../data/levelFlow';
@@ -33,17 +31,19 @@ import { soundManager } from '../systems/soundManager';
 import { GameHud } from '../ui/GameHud';
 import { TouchControls } from '../ui/TouchControls';
 import { isTouchDevice } from '../systems/device';
-import { COLORS, textStyle } from '../ui/theme';
+import { textStyle } from '../ui/theme';
 import type { MovementBounds } from '../types/combat';
 import { applyDepthSort, sortByDepth } from '../world/depthSort';
 import { BODY_COLLISION, separateActors, type BodyActor } from '../world/bodyCollision';
-import { addDecorSprite, buildScenery } from '../world/scenery';
-import type { DecorFrame } from '../world/tileAssets';
+import { buildStage } from '../world/stage';
 
 type DepthSortable = Phaser.GameObjects.GameObject & {
   y: number;
   setDepth: (value: number) => unknown;
 };
+
+/** Standard-mapping gamepad Start button. */
+const GAMEPAD_START = 9;
 
 export class LevelScene extends Phaser.Scene {
   private players: Player[] = [];
@@ -91,7 +91,7 @@ export class LevelScene extends Phaser.Scene {
     this.buildLevel();
     this.hud = new GameHud(this);
     this.spawnPlayers();
-    this.hud.bindPlayers(this.players.map((player) => player.displayName), getPlayerCount(this.registry));
+    this.hud.bindPlayers(this.players.map((player) => ({ name: player.displayName, color: player.color })));
     this.hud.setObjective(this.level.objectives.start);
     for (const [index, player] of this.players.entries()) {
       this.hud.setPlayerHp(index, player.combatant.health, player.combatant.maxHealth);
@@ -108,6 +108,7 @@ export class LevelScene extends Phaser.Scene {
     const touch = isTouchDevice() ? new TouchControls(this) : null;
     this.playerInput = new PlayerInput(keyboard, this.input.gamepad, getPlayerCount(this.registry), touch);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.playerInput.destroy());
+    this.bindPause(keyboard, touch);
     if (DEBUG_MODE) {
       const defeatAll = () => this.encounterManager.defeatAll(this.time.now);
       keyboard.on(`keydown-${DEBUG_DEFEAT_ALL_KEY}`, defeatAll);
@@ -198,23 +199,40 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
+  /** Esc, P, the gamepad's Start, the HUD button, or leaving the tab/app all pause the game. */
+  private bindPause(keyboard: Phaser.Input.Keyboard.KeyboardPlugin, touch: TouchControls | null) {
+    const pause = () => {
+      if (!this.scene.isActive()) return;
+      this.scene.launch('PauseScene');
+      this.scene.pause();
+    };
+    const onPad = (_pad: Phaser.Input.Gamepad.Gamepad, button: Phaser.Input.Gamepad.Button) => {
+      if (button.index === GAMEPAD_START) pause();
+    };
+    keyboard.on('keydown-ESC', pause);
+    keyboard.on('keydown-P', pause);
+    this.input.gamepad?.on('down', onPad);
+    this.game.events.on(Phaser.Core.Events.HIDDEN, pause);
+    this.hud.onPause(pause);
+
+    // Whatever was pressed in the pause menu (or released while paused) shouldn't leak into play.
+    const onResume = () => {
+      keyboard.resetKeys();
+      touch?.reset();
+    };
+    this.events.on(Phaser.Scenes.Events.RESUME, onResume);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      keyboard.off('keydown-ESC', pause);
+      keyboard.off('keydown-P', pause);
+      this.input.gamepad?.off('down', onPad);
+      this.game.events.off(Phaser.Core.Events.HIDDEN, pause);
+      this.events.off(Phaser.Scenes.Events.RESUME, onResume);
+    });
+  }
+
   private buildLevel() {
     const { level } = this;
-    if (level.scenery) {
-      buildScenery(this, level.scenery);
-    } else {
-      this.buildGrayBoxFloor();
-    }
-    const propSprites = level.scenery?.props ?? {};
-
-    const { cover, hallway, court } = LEVEL_PROPS;
-    this.addZoneLabel(level.zones[0], 320, 250);
-    this.addProp(cover.x, cover.y, cover.width, cover.height, level.props.cover, propSprites.cover);
-    this.addZoneLabel(level.zones[1], 1380, 220);
-    this.addProp(hallway.x, WALK_LANE.minY - 40, hallway.width, hallway.height, level.props.hallway, propSprites.hallway);
-    this.addZoneLabel(level.zones[2], 1880, 220);
-    this.addProp(court.x, WALK_LANE.minY - 40, court.width, court.height, level.props.court, propSprites.court);
-
+    buildStage(this, level.stage);
     this.rescuedFriends = this.add.container(LEVEL_ZONES.rescueX, 460).setVisible(false);
     const rescued = level.rescue.characters.map(getRosterCharacter);
     rescued.forEach((character, index) => {
@@ -427,50 +445,6 @@ export class LevelScene extends Phaser.Scene {
     return this.players.some((player) =>
       Phaser.Math.Distance.Between(player.x, player.y, point.x, point.y) <= point.radius,
     );
-  }
-
-  private addZoneLabel(text: string, x: number, y: number) {
-    this.add
-      .text(x, y, text, textStyle('bodySmall', { color: COLORS.textMuted }))
-      .setOrigin(0.5)
-      .setDepth(y);
-  }
-
-  private buildGrayBoxFloor() {
-    const floor = this.level.palette.floor;
-    this.add.rectangle(LEVEL_WIDTH / 2, GAME_HEIGHT / 2, LEVEL_WIDTH, LEVEL_HEIGHT, floor).setDepth(0);
-    this.add
-      .rectangle(LEVEL_WIDTH / 2, WALK_LANE.minY, LEVEL_WIDTH, 4, COLORS.floorLine, 0.8)
-      .setDepth(WALK_LANE.minY);
-    this.add
-      .rectangle(LEVEL_WIDTH / 2, WALK_LANE.maxY, LEVEL_WIDTH, 4, COLORS.floorLine, 0.8)
-      .setDepth(WALK_LANE.maxY);
-    this.add
-      .rectangle(
-        LEVEL_WIDTH / 2,
-        (WALK_LANE.minY + WALK_LANE.maxY) / 2,
-        LEVEL_WIDTH,
-        WALK_LANE.maxY - WALK_LANE.minY,
-        floor,
-        0.2,
-      )
-      .setDepth(WALK_LANE.minY - 1);
-  }
-
-  private addProp(x: number, y: number, width: number, height: number, label: string, sprite?: DecorFrame) {
-    const baseY = y + height / 2;
-    if (sprite) {
-      addDecorSprite(this, sprite, x, y + height).setDepth(baseY);
-      return;
-    }
-    const prop = this.add
-      .rectangle(x, baseY, width, height, COLORS.prop)
-      .setStrokeStyle(2, COLORS.propBorder);
-    this.add
-      .text(x, y - 12, label, textStyle('label'))
-      .setOrigin(0.5)
-      .setDepth(baseY - 1);
-    prop.setDepth(baseY);
   }
 
   private refreshDepthSorting() {

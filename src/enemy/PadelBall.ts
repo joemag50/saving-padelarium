@@ -102,7 +102,8 @@ export class PadelBall implements EncounterActor {
       if (!player.isAlive || player.isInvulnerable(now)) continue;
       if (Math.abs(player.x - this.container.x) > HIT_REACH.x) continue;
       if (Math.abs(player.y - this.container.y) > HIT_REACH.y) continue;
-      player.takeDamage(this.damage, now);
+      // A ball that doesn't hurt (debug invincibility) flies on, so it can still be returned.
+      if (!player.takeDamage(this.damage, now)) continue;
       this.destroy();
       return;
     }

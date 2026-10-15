@@ -3,13 +3,17 @@ import type { EnemyKind, EnemyStats } from './enemies';
 import { GAME_WIDTH, LEVEL_WIDTH } from './constants';
 
 /**
- * Every level shares this three-zone layout (A: start + first fight, B: hallway, C: boss + rescue);
+ * Every level shares this two-room layout, each room one screen wide
+ * (A: start + first fight, B: leader or final boss + rescue);
  * levels differ in content, enemy waves and difficulty, defined in `data/levels.ts`.
  */
+const ROOM_B_X = GAME_WIDTH;
+
 export const LEVEL_ZONES = {
   encounter1TriggerX: 550,
-  courtTriggerX: 1720,
-  rescueX: 2220,
+  /** A little past the doorway, so both players are inside room B when its camera locks. */
+  courtTriggerX: ROOM_B_X + 140,
+  rescueX: LEVEL_WIDTH - 200,
 } as const;
 
 /**
@@ -21,12 +25,6 @@ export const ENCOUNTER_CAMERA_X = {
   encounter2: LEVEL_WIDTH - GAME_WIDTH,
 } as const;
 
-export const LEVEL_PROPS = {
-  cover: { x: 620, y: 330, width: 220, height: 90 },
-  hallway: { x: 1500, width: 80, height: 160 },
-  court: { x: 2100, width: 80, height: 160 },
-} as const;
-
 export const INTERACT_POINTS = {
   /** Walking up to the rescued friends (once every enemy is down) opens the rescue message. */
   rescue: { x: LEVEL_ZONES.rescueX, y: 460, radius: 110 },
@@ -34,10 +32,10 @@ export const INTERACT_POINTS = {
 
 const ENCOUNTER_AREAS = {
   encounter1: { minX: 740, maxX: 930 },
-  encounter2: { minX: 1800, maxX: 2080 },
+  encounter2: { minX: ROOM_B_X + 620, maxX: ROOM_B_X + 900 },
 } as const;
 
-const BOSS_SPAWN = { x: 1940, y: 460 } as const;
+const BOSS_SPAWN = { x: ROOM_B_X + 760, y: 460 } as const;
 const FINAL_BOSS_SPAWN = { x: LEVEL_WIDTH - 150, y: 450 } as const;
 
 /** Depth rows enemies are spread across, inside the walk lane. */

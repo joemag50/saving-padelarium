@@ -27,6 +27,8 @@ export type EnemyWave = readonly EnemySpawn[];
 export interface EncounterActor extends CombatTarget, BodyActor {
   /** False for things players walk through (balls, beams, a charging boss). */
   readonly blocksBodies: boolean;
+  /** Debug (N key): knock this actor out right away. Defaults to draining its health. */
+  forceDefeat?(now: number): void;
   update(now: number, deltaSeconds: number, players: Player[], bodyBlockers: BodySnapshot[]): void;
   destroy(): void;
 }
@@ -155,6 +157,10 @@ export class EncounterManager {
   /** Debug helper: knocks out every living enemy, as if the players had won the fight. */
   defeatAll(now: number) {
     for (const enemy of this.livingEnemies) {
+      if (enemy.forceDefeat) {
+        enemy.forceDefeat(now);
+        continue;
+      }
       enemy.combatant.invulnerableUntil = 0;
       enemy.combatant.takeDamage(enemy.combatant.maxHealth, now);
     }
