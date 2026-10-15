@@ -1,13 +1,18 @@
 import Phaser from 'phaser';
 import { COMBAT } from '../config/combat';
+import { DEBUG_DEFEAT_ALL_KEY, DEBUG_INVINCIBLE_KEY, DEBUG_MODE, debugState } from '../config/debug';
 import {
-  ENEMY_SPAWNS,
+  buildEncounter1Waves,
+  buildEncounter2Waves,
+  ENCOUNTER_CAMERA_X,
   INTERACT_POINTS,
+  LEVEL_PROPS,
   LEVEL_ZONES,
 } from '../config/level';
 import {
   CAMERA,
   GAME_HEIGHT,
+  GAME_WIDTH,
   LEVEL_HEIGHT,
   LEVEL_WIDTH,
   PLAYER,
@@ -15,20 +20,23 @@ import {
   WALK_LANE,
 } from '../config/constants';
 import { EncounterManager } from '../core/EncounterManager';
-import { CLUE, OBJECTIVES, RESCUE_LINE, type LevelState } from '../data/levelFlow';
+import type { LevelState } from '../data/levelFlow';
+import type { LevelDefinition } from '../data/levels';
 import { getDefaultParty, getRosterCharacter } from '../data/roster';
 import { sanitizePartySelection, type PartySelection } from '../systems/rosterProgress';
-import { getPlayerCount } from '../systems/session';
+import { getCurrentLevel, getPlayerCount } from '../systems/session';
 import type { PlayerIndex } from '../types/player';
 import { PairSpecial } from '../combat/PairSpecial';
 import { Player } from '../player/Player';
 import { PlayerInput } from '../player/PlayerInput';
 import { soundManager } from '../systems/soundManager';
 import { GameHud } from '../ui/GameHud';
-import { COLORS, FONTS } from '../ui/theme';
+import { COLORS, textStyle } from '../ui/theme';
 import type { MovementBounds } from '../types/combat';
 import { applyDepthSort, sortByDepth } from '../world/depthSort';
 import { BODY_COLLISION, separateActors, type BodyActor } from '../world/bodyCollision';
+import { addDecorSprite, buildScenery } from '../world/scenery';
+import type { DecorFrame } from '../world/tileAssets';
 
 type DepthSortable = Phaser.GameObjects.GameObject & {
   y: number;
@@ -42,48 +50,81 @@ export class LevelScene extends Phaser.Scene {
   private encounterManager!: EncounterManager;
   private pairSpecial = new PairSpecial();
   private cameraTarget!: Phaser.GameObjects.Container;
-  private readonly depthSorted: DepthSortable[] = [];
+  private depthSorted: DepthSortable[] = [];
   private hitStopUntil = 0;
+  private level!: LevelDefinition;
 
-  private barrierGate!: Phaser.GameObjects.Rectangle;
-  private encounterBlockGate!: Phaser.GameObjects.Rectangle;
-  private cableGfx!: Phaser.GameObjects.Graphics;
-  private projectorProp!: Phaser.GameObjects.Rectangle;
-  private rescuedFriend!: Phaser.GameObjects.Container;
+  private rescuedFriends!: Phaser.GameObjects.Container;
 
-  private flow = {
-    state: 'start' as LevelState,
-    encounter1Started: false,
-    encounter1Cleared: false,
-    barrierInspected: false,
-    clueFound: false,
-    encounter2Started: false,
-    encounter2Cleared: false,
-    rescueShown: false,
-  };
+  private flow = LevelScene.initialFlow();
+  /** Left edge of the camera while it's locked on a fight; null when the camera follows the players. */
+  private lockedCameraX: number | null = null;
+
+  private static initialFlow() {
+    return {
+      state: 'start' as LevelState,
+      encounter1Started: false,
+      encounter1Cleared: false,
+      encounter2Started: false,
+      encounter2Cleared: false,
+      rescueShown: false,
+    };
+  }
 
   constructor() {
     super({ key: 'LevelScene' });
   }
 
   create() {
+    // Phaser reuses the scene instance, so reset per-run state on every start.
+    this.level = getCurrentLevel(this.registry);
+    this.flow = LevelScene.initialFlow();
+    this.pairSpecial = new PairSpecial();
+    this.depthSorted = [];
+    this.hitStopUntil = 0;
+    this.lockedCameraX = null;
+
     soundManager.ensureContext();
-    this.cameras.main.setBackgroundColor(COLORS.background);
+    this.cameras.main.setBackgroundColor(this.level.palette.background);
     this.buildLevel();
     this.hud = new GameHud(this);
     this.spawnPlayers();
     this.hud.bindPlayers(this.players.map((player) => player.displayName), getPlayerCount(this.registry));
-    this.hud.setObjective(OBJECTIVES.start);
+    this.hud.setObjective(this.level.objectives.start);
     for (const [index, player] of this.players.entries()) {
       this.hud.setPlayerHp(index, player.combatant.health, player.combatant.maxHealth);
     }
-    this.encounterManager = new EncounterManager(this);
+    this.encounterManager = new EncounterManager(this, {
+      onBossHealth: (current, max) => this.hud.setBossHealth(current, max),
+      onBossFightEnd: () => this.hud.hideBossBar(),
+      setHint: (text) => this.hud.setInteractHint(text),
+    });
     this.setupCamera();
 
     const keyboard = this.input.keyboard;
     if (!keyboard) throw new Error('Keyboard input is unavailable.');
     this.playerInput = new PlayerInput(keyboard, this.input.gamepad, getPlayerCount(this.registry));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.playerInput.destroy());
+    if (DEBUG_MODE) {
+      const defeatAll = () => this.encounterManager.defeatAll(this.time.now);
+      keyboard.on(`keydown-${DEBUG_DEFEAT_ALL_KEY}`, defeatAll);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => keyboard.off(`keydown-${DEBUG_DEFEAT_ALL_KEY}`, defeatAll));
+
+      const invincibleLabel = this.add
+        .text(GAME_WIDTH / 2, 62, `MODO INVENCIBLE (${DEBUG_INVINCIBLE_KEY})`, textStyle('caption', { color: '#fde047' }))
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(10_000)
+        .setVisible(debugState.invincible);
+      const toggleInvincible = () => {
+        debugState.invincible = !debugState.invincible;
+        invincibleLabel.setVisible(debugState.invincible);
+      };
+      keyboard.on(`keydown-${DEBUG_INVINCIBLE_KEY}`, toggleInvincible);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => keyboard.off(`keydown-${DEBUG_INVINCIBLE_KEY}`, toggleInvincible));
+    }
+
+    this.hud.showMessage(`NIVEL ${this.level.id}: ${this.level.title.toUpperCase()}`, this.level.intro, () => undefined);
   }
 
   update(time: number, delta: number) {
@@ -96,7 +137,7 @@ export class LevelScene extends Phaser.Scene {
     const activeCount = players.length;
 
     if (this.hud.isMessageOpen()) {
-      this.hud.tryDismissMessage(this.playerInput.interactPressedByAny(activeCount));
+      this.hud.tryDismissMessage(this.playerInput.attackPressedByAny(activeCount));
       return;
     }
     const bodyBlockersFor = (exclude: BodyActor) =>
@@ -105,7 +146,6 @@ export class LevelScene extends Phaser.Scene {
         .map((actor) => actor.getBodySnapshot());
 
     this.checkTriggers();
-    this.handleInteractions();
     this.tryPairSpecial(time, targets);
 
     let hitConnected = false;
@@ -142,80 +182,49 @@ export class LevelScene extends Phaser.Scene {
 
     const bodyActors = this.collectBodyActors();
     if (bodyActors.length > 1) {
-      separateActors(bodyActors, BODY_COLLISION.depthTolerance);
+      separateActors(bodyActors, BODY_COLLISION.depthRatio);
     }
 
     this.updateCameraTarget();
     this.hud.setSpecial(this.pairSpecial.charge, this.pairSpecial.isReadyFlash(time));
     this.refreshDepthSorting();
 
-    if (this.flow.state === 'rescue' && this.flow.rescueShown) {
-      const leadX = Math.max(...players.map((player) => player.x));
-      if (leadX >= LEVEL_ZONES.rescueX - 40) {
-        this.scene.start('EndScene');
-      }
+    if (this.flow.state === 'rescue' && !this.flow.rescueShown && this.isAnyPlayerNear(INTERACT_POINTS.rescue)) {
+      this.flow.rescueShown = true;
+      this.hud.showMessage('RESCATE', this.level.rescue.line, () => this.scene.start('EndScene'));
     }
   }
 
   private buildLevel() {
-    this.add.rectangle(LEVEL_WIDTH / 2, GAME_HEIGHT / 2, LEVEL_WIDTH, LEVEL_HEIGHT, COLORS.floor).setDepth(0);
-    this.add
-      .rectangle(LEVEL_WIDTH / 2, WALK_LANE.minY, LEVEL_WIDTH, 4, COLORS.floorLine, 0.8)
-      .setDepth(WALK_LANE.minY);
-    this.add
-      .rectangle(LEVEL_WIDTH / 2, WALK_LANE.maxY, LEVEL_WIDTH, 4, COLORS.floorLine, 0.8)
-      .setDepth(WALK_LANE.maxY);
-    this.add
-      .rectangle(
-        LEVEL_WIDTH / 2,
-        (WALK_LANE.minY + WALK_LANE.maxY) / 2,
-        LEVEL_WIDTH,
-        WALK_LANE.maxY - WALK_LANE.minY,
-        COLORS.floor,
-        0.2,
-      )
-      .setDepth(WALK_LANE.minY - 1);
+    const { level } = this;
+    if (level.scenery) {
+      buildScenery(this, level.scenery);
+    } else {
+      this.buildGrayBoxFloor();
+    }
+    const propSprites = level.scenery?.props ?? {};
 
-    this.addZoneLabel('ZONA A — RECEPCIÓN', 320, 250);
-    this.addProp(620, 330, 220, 90, 'MOSTRADOR');
-    this.projectorProp = this.add
-      .rectangle(660, 455, 50, 30, 0xfbbf24)
-      .setStrokeStyle(2, 0xffffff, 0.5);
-    this.add
-      .text(660, 420, 'PROYECTOR', { fontFamily: FONTS.mono, fontSize: '12px', color: '#fbbf24' })
-      .setOrigin(0.5);
+    const { cover, hallway, court } = LEVEL_PROPS;
+    this.addZoneLabel(level.zones[0], 320, 250);
+    this.addProp(cover.x, cover.y, cover.width, cover.height, level.props.cover, propSprites.cover);
+    this.addZoneLabel(level.zones[1], 1380, 220);
+    this.addProp(hallway.x, WALK_LANE.minY - 40, hallway.width, hallway.height, level.props.hallway, propSprites.hallway);
+    this.addZoneLabel(level.zones[2], 1880, 220);
+    this.addProp(court.x, WALK_LANE.minY - 40, court.width, court.height, level.props.court, propSprites.court);
 
-    this.barrierGate = this.add
-      .rectangle(LEVEL_ZONES.barrierX, 430, 36, 230, 0x66e0ff, 0.4)
-      .setStrokeStyle(3, 0x66e0ff);
-    this.add
-      .text(LEVEL_ZONES.barrierX, 300, 'BARRERA ALIENÍGENA', {
-        fontFamily: FONTS.mono,
-        fontSize: '14px',
-        color: '#9fefff',
-      })
-      .setOrigin(0.5);
-
-    this.encounterBlockGate = this.add
-      .rectangle(LEVEL_ZONES.encounter1BlockX, 430, 24, 230, COLORS.prop, 0.85)
-      .setStrokeStyle(2, COLORS.propBorder)
-      .setVisible(false);
-
-    this.cableGfx = this.add.graphics();
-    this.drawCable(false);
-
-    this.addZoneLabel('ZONA B — PASILLO', 1380, 220);
-    this.addProp(1500, WALK_LANE.minY - 40, 80, 160, 'COLUMNA');
-    this.addZoneLabel('ZONA C — CANCHA', 1880, 220);
-    this.addProp(2100, WALK_LANE.minY - 40, 80, 160, 'COLUMNA');
-
-    this.rescuedFriend = this.add.container(LEVEL_ZONES.rescueX, 460).setVisible(false);
-    this.rescuedFriend.add(
-      this.add.rectangle(0, 0, 48, 72, 0x34d399).setStrokeStyle(2, 0xffffff, 0.4),
-    );
-    this.rescuedFriend.add(
-      this.add.text(0, -52, 'Rody', { fontFamily: FONTS.ui, fontSize: '14px', color: '#fff' }).setOrigin(0.5),
-    );
+    this.rescuedFriends = this.add.container(LEVEL_ZONES.rescueX, 460).setVisible(false);
+    const rescued = level.rescue.characters.map(getRosterCharacter);
+    rescued.forEach((character, index) => {
+      const offsetX = (index - (rescued.length - 1) / 2) * 64;
+      this.rescuedFriends.add(
+        this.add.rectangle(offsetX, 0, 48, 72, character.color).setStrokeStyle(2, 0xffffff, 0.4),
+      );
+      this.rescuedFriends.add(
+        this.add
+          .text(offsetX, -52, character.name, textStyle('label', { color: '#fff' }))
+          .setOrigin(0.5),
+      );
+    });
   }
 
   private spawnPlayers() {
@@ -238,7 +247,6 @@ export class LevelScene extends Phaser.Scene {
       this.depthSorted.push(player.position);
       return player;
     });
-    this.depthSorted.push(this.projectorProp, this.barrierGate);
   }
 
   private setupCamera() {
@@ -248,6 +256,26 @@ export class LevelScene extends Phaser.Scene {
     camera.setBounds(0, 0, LEVEL_WIDTH, LEVEL_HEIGHT);
     camera.startFollow(this.cameraTarget, true, CAMERA.followLerp, CAMERA.followLerp);
     camera.setDeadzone(CAMERA.deadzoneWidth, GAME_HEIGHT);
+  }
+
+  /** Walkable limits of a fight's room, given the camera's left edge while it's locked there. */
+  private static roomArena(cameraX: number) {
+    return { minX: cameraX + PLAYER.bodyWidth / 2, maxX: cameraX + GAME_WIDTH - PLAYER.bodyWidth / 2 };
+  }
+
+  /** Freezes the camera on a fight's room; players are kept on screen by `getMovementBounds`. */
+  private lockCamera(scrollX: number) {
+    const camera = this.cameras.main;
+    this.lockedCameraX = Phaser.Math.Clamp(scrollX, 0, LEVEL_WIDTH - GAME_WIDTH);
+    camera.stopFollow();
+    camera.pan(this.lockedCameraX + GAME_WIDTH / 2, GAME_HEIGHT / 2, 400, 'Sine.easeInOut');
+  }
+
+  private releaseCamera(showGoHint = true) {
+    if (this.lockedCameraX === null) return;
+    this.lockedCameraX = null;
+    this.cameras.main.startFollow(this.cameraTarget, true, CAMERA.followLerp, CAMERA.followLerp);
+    if (showGoHint) this.hud.showGoHint();
   }
 
   private updateCameraTarget() {
@@ -270,7 +298,7 @@ export class LevelScene extends Phaser.Scene {
     for (const player of this.players) {
       if (player.isAlive) actors.push(player);
     }
-    for (const enemy of this.encounterManager.livingEnemies) {
+    for (const enemy of this.encounterManager.bodyActors) {
       actors.push(enemy);
     }
     return actors;
@@ -279,14 +307,14 @@ export class LevelScene extends Phaser.Scene {
   private getMovementBounds(): MovementBounds {
     let maxX = LEVEL_WIDTH - PLAYER.bodyWidth / 2;
 
-    if (this.flow.encounter1Started && !this.flow.encounter1Cleared) {
-      maxX = Math.min(maxX, LEVEL_ZONES.encounter1BlockX);
-    }
-    if (!this.flow.clueFound) {
-      maxX = Math.min(maxX, LEVEL_ZONES.barrierX - 24);
+    let minX = PLAYER.bodyWidth / 2;
+
+    if (this.lockedCameraX !== null) {
+      minX = Math.max(minX, this.lockedCameraX + PLAYER.bodyWidth / 2);
+      maxX = Math.min(maxX, this.lockedCameraX + GAME_WIDTH - PLAYER.bodyWidth / 2);
     }
 
-    return { minX: PLAYER.bodyWidth / 2, maxX };
+    return { minX, maxX };
   }
 
   private checkTriggers() {
@@ -295,12 +323,8 @@ export class LevelScene extends Phaser.Scene {
     if (!this.flow.encounter1Started && leadX >= LEVEL_ZONES.encounter1TriggerX) {
       this.startEncounter1();
     }
-    if (this.flow.clueFound && this.flow.state === 'investigate') {
-      this.flow.state = 'hallway';
-      this.hud.setObjective(OBJECTIVES.hallway);
-    }
     if (
-      this.flow.clueFound &&
+      this.flow.state === 'hallway' &&
       !this.flow.encounter2Started &&
       leadX >= LEVEL_ZONES.courtTriggerX
     ) {
@@ -311,93 +335,45 @@ export class LevelScene extends Phaser.Scene {
   private startEncounter1() {
     this.flow.encounter1Started = true;
     this.flow.state = 'encounter_1';
-    this.encounterBlockGate.setVisible(true);
-    this.hud.setObjective(OBJECTIVES.encounter_1);
+    this.lockCamera(ENCOUNTER_CAMERA_X.encounter1);
+    this.hud.setObjective(this.level.objectives.encounter1);
     soundManager.playEncounterStart();
-    this.encounterManager.startBasic(ENEMY_SPAWNS.encounter1, () => {
+    const waves = buildEncounter1Waves(this.level.encounter1.waves, this.level.minionScale);
+    this.encounterManager.startWaves(waves, LevelScene.roomArena(ENCOUNTER_CAMERA_X.encounter1), () => {
       this.flow.encounter1Cleared = true;
-      this.flow.state = 'investigate';
-      this.encounterBlockGate.setVisible(false);
-      this.hud.setObjective(OBJECTIVES.investigate);
-      this.drawCable(true);
+      for (const player of this.players) {
+        player.recoverBetweenEncounters(COMBAT.recoveryBetweenEncounters);
+      }
+      this.flow.state = 'hallway';
+      this.hud.setObjective(this.level.objectives.hallway);
+      this.releaseCamera();
     });
   }
 
   private startEncounter2() {
     this.flow.encounter2Started = true;
     this.flow.state = 'encounter_2';
-    this.hud.setObjective(OBJECTIVES.encounter_2);
+    this.lockCamera(ENCOUNTER_CAMERA_X.encounter2);
+    this.hud.setObjective(this.level.objectives.encounter2);
     soundManager.playEncounterStart();
-    this.encounterManager.startFinal(
-      ENEMY_SPAWNS.encounter2.minions,
-      ENEMY_SPAWNS.encounter2.miniBoss,
+    const waves = buildEncounter2Waves(
+      this.level.encounter2.waves,
+      this.level.minionScale,
+      this.level.boss,
+      this.level.finalBoss === true,
+    );
+    if (this.level.finalBoss) this.hud.showBossBar(this.level.boss.label);
+    this.encounterManager.startWaves(
+      waves,
+      LevelScene.roomArena(ENCOUNTER_CAMERA_X.encounter2),
       () => {
         this.flow.encounter2Cleared = true;
         this.flow.state = 'rescue';
-        this.hud.setObjective(OBJECTIVES.rescue);
-        this.rescuedFriend.setVisible(true);
-        applyDepthSort(this.rescuedFriend, this.rescuedFriend.y);
-        this.hud.showMessage('RESCATE', RESCUE_LINE, () => {
-          this.flow.rescueShown = true;
-        });
-      },
-    );
-  }
-
-  private handleInteractions() {
-    if (this.flow.state !== 'investigate' && !this.flow.clueFound) {
-      this.hud.setInteractHint('');
-      return;
-    }
-
-    const nearBarrier = this.isAnyPlayerNear(INTERACT_POINTS.barrier);
-    const nearProjector = this.isAnyPlayerNear(INTERACT_POINTS.projector);
-
-    if (!this.flow.clueFound && nearBarrier) {
-      this.hud.setInteractHint('[Interactuar] Inspeccionar la barrera');
-      if (this.interactPressed()) {
-        this.flow.barrierInspected = true;
-        this.drawCable(true);
-        this.hud.showMessage(
-          'BARRERA',
-          'La barrera no tiene una fuente visible. Un cable se extiende detrás del mostrador.',
-          () => undefined,
-        );
-      }
-      return;
-    }
-
-    if (!this.flow.clueFound && this.flow.barrierInspected && nearProjector) {
-      this.hud.setInteractHint('[Interactuar] Apagar el proyector');
-      if (this.interactPressed()) {
-        this.disableProjector();
-      }
-      return;
-    }
-
-    if (!this.flow.clueFound && nearBarrier) {
-      this.hud.setInteractHint('La barrera sigue activa');
-    } else {
-      this.hud.setInteractHint('');
-    }
-  }
-
-  private disableProjector() {
-    this.flow.clueFound = true;
-    soundManager.playDiscover();
-    this.barrierGate.setVisible(false);
-    this.projectorProp.setFillStyle(0x4b5563);
-    this.tweens.add({
-      targets: this.barrierGate,
-      alpha: 0,
-      duration: 300,
-    });
-    this.hud.showMessage(
-      CLUE.title,
-      `${CLUE.subtitle}\n${CLUE.label}\n\n${CLUE.description}`,
-      () => {
-        this.hud.setObjective(CLUE.nextObjective);
-        this.flow.state = 'hallway';
+        // The friends to rescue are in this same room, so no "¡ADELANTE!" here.
+        this.releaseCamera(false);
+        this.hud.setObjective(this.level.objectives.rescue);
+        this.rescuedFriends.setVisible(true);
+        applyDepthSort(this.rescuedFriends, this.rescuedFriends.y);
       },
     );
   }
@@ -427,9 +403,11 @@ export class LevelScene extends Phaser.Scene {
 
   private restartActiveEncounter() {
     this.encounterManager.clear();
+    // Respawn inside the locked room so the retry starts on screen.
+    const roomX = this.lockedCameraX ?? 0;
     for (const [index, player] of this.players.entries()) {
       const spawn = SPAWN_POINTS[index] ?? SPAWN_POINTS[0];
-      player.resetForEncounter(spawn.x, spawn.y);
+      player.resetForEncounter(roomX + spawn.x, spawn.y);
     }
 
     if (this.flow.encounter2Started && !this.flow.encounter2Cleared) {
@@ -442,41 +420,51 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
-  private interactPressed() {
-    return this.playerInput.interactPressedByAny(this.players.length);
-  }
-
   private isAnyPlayerNear(point: { x: number; y: number; radius: number }) {
     return this.players.some((player) =>
       Phaser.Math.Distance.Between(player.x, player.y, point.x, point.y) <= point.radius,
     );
   }
 
-  private drawCable(visible: boolean) {
-    this.cableGfx.clear();
-    if (!visible) return;
-    this.cableGfx.lineStyle(3, 0xfbbf24, 0.8);
-    this.cableGfx.beginPath();
-    this.cableGfx.moveTo(LEVEL_ZONES.barrierX - 10, 430);
-    this.cableGfx.lineTo(720, 445);
-    this.cableGfx.lineTo(660, 455);
-    this.cableGfx.strokePath();
-  }
-
   private addZoneLabel(text: string, x: number, y: number) {
     this.add
-      .text(x, y, text, { fontFamily: FONTS.mono, fontSize: '18px', color: COLORS.textMuted })
+      .text(x, y, text, textStyle('bodySmall', { color: COLORS.textMuted }))
       .setOrigin(0.5)
       .setDepth(y);
   }
 
-  private addProp(x: number, y: number, width: number, height: number, label: string) {
+  private buildGrayBoxFloor() {
+    const floor = this.level.palette.floor;
+    this.add.rectangle(LEVEL_WIDTH / 2, GAME_HEIGHT / 2, LEVEL_WIDTH, LEVEL_HEIGHT, floor).setDepth(0);
+    this.add
+      .rectangle(LEVEL_WIDTH / 2, WALK_LANE.minY, LEVEL_WIDTH, 4, COLORS.floorLine, 0.8)
+      .setDepth(WALK_LANE.minY);
+    this.add
+      .rectangle(LEVEL_WIDTH / 2, WALK_LANE.maxY, LEVEL_WIDTH, 4, COLORS.floorLine, 0.8)
+      .setDepth(WALK_LANE.maxY);
+    this.add
+      .rectangle(
+        LEVEL_WIDTH / 2,
+        (WALK_LANE.minY + WALK_LANE.maxY) / 2,
+        LEVEL_WIDTH,
+        WALK_LANE.maxY - WALK_LANE.minY,
+        floor,
+        0.2,
+      )
+      .setDepth(WALK_LANE.minY - 1);
+  }
+
+  private addProp(x: number, y: number, width: number, height: number, label: string, sprite?: DecorFrame) {
     const baseY = y + height / 2;
+    if (sprite) {
+      addDecorSprite(this, sprite, x, y + height).setDepth(baseY);
+      return;
+    }
     const prop = this.add
       .rectangle(x, baseY, width, height, COLORS.prop)
       .setStrokeStyle(2, COLORS.propBorder);
     this.add
-      .text(x, y - 12, label, { fontFamily: FONTS.mono, fontSize: '14px', color: COLORS.text })
+      .text(x, y - 12, label, textStyle('label'))
       .setOrigin(0.5)
       .setDepth(baseY - 1);
     prop.setDepth(baseY);

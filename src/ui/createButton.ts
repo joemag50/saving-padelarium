@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, FONTS } from './theme';
+import { COLORS, textStyle } from './theme';
 
 type ButtonConfig = {
   x: number;
@@ -18,11 +18,9 @@ export function createButton(scene: Phaser.Scene, config: ButtonConfig) {
     .rectangle(0, 0, config.width, config.height, config.color)
     .setStrokeStyle(2, COLORS.propBorder);
   const label = scene.add
-    .text(0, 0, config.label, {
-      fontFamily: FONTS.ui,
-      fontSize: '22px',
+    .text(0, 0, config.label, textStyle('subheading', {
       color: COLORS.textBright,
-    })
+    }))
     .setOrigin(0.5);
 
   background.setInteractive({ useHandCursor: true });

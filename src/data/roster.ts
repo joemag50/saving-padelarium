@@ -8,6 +8,7 @@ export type RosterCharacterId =
   | 'armando'
   | 'lucia'
   | 'fatima'
+  | 'casillas'
   | 'juaquin'
   | 'flor'
   | 'alberto'
@@ -15,32 +16,31 @@ export type RosterCharacterId =
   | 'cris'
   | 'crispy';
 
-/** How a character becomes playable in the roster menu. */
-export type RosterUnlockKind = 'starter' | 'mvp_rescue' | 'future_rescue';
-
+/** Starters are always playable; everyone else unlocks when rescued (see `data/levels.ts`). */
 export type RosterCharacter = {
   id: RosterCharacterId;
   name: string;
   color: number;
-  unlock: RosterUnlockKind;
+  starter: boolean;
 };
 
 export const MAX_PARTY_SIZE = MAX_PLAYERS;
 
 export const ROSTER: readonly RosterCharacter[] = [
-  { id: 'carol', name: 'Carol', color: 0x5b8def, unlock: 'starter' },
-  { id: 'jose', name: 'José', color: 0xef8b5b, unlock: 'starter' },
-  { id: 'arturo', name: 'Arturo', color: 0xa78bfa, unlock: 'future_rescue' },
-  { id: 'fisam', name: 'Fisam', color: 0x34d399, unlock: 'future_rescue' },
-  { id: 'armando', name: 'Armando', color: 0xf472b6, unlock: 'future_rescue' },
-  { id: 'lucia', name: 'Lucía', color: 0xfbbf24, unlock: 'future_rescue' },
-  { id: 'fatima', name: 'Fátima', color: 0xfb7185, unlock: 'future_rescue' },
-  { id: 'juaquin', name: 'Juaquin', color: 0x38bdf8, unlock: 'future_rescue' },
-  { id: 'flor', name: 'Flor', color: 0x4ade80, unlock: 'future_rescue' },
-  { id: 'alberto', name: 'Alberto', color: 0xc084fc, unlock: 'future_rescue' },
-  { id: 'rody', name: 'Rody', color: 0x2dd4bf, unlock: 'mvp_rescue' },
-  { id: 'cris', name: 'Cris', color: 0xf97316, unlock: 'future_rescue' },
-  { id: 'crispy', name: 'Crispy', color: 0x818cf8, unlock: 'future_rescue' },
+  { id: 'carol', name: 'Carol', color: 0x5b8def, starter: true },
+  { id: 'jose', name: 'José', color: 0xef8b5b, starter: true },
+  { id: 'arturo', name: 'Arturo', color: 0xa78bfa, starter: false },
+  { id: 'fisam', name: 'Fisam', color: 0x34d399, starter: false },
+  { id: 'armando', name: 'Armando', color: 0xf472b6, starter: false },
+  { id: 'lucia', name: 'Lucía', color: 0xfbbf24, starter: false },
+  { id: 'fatima', name: 'Fátima', color: 0xfb7185, starter: false },
+  { id: 'casillas', name: 'Casillas', color: 0xdc2626, starter: false },
+  { id: 'juaquin', name: 'Juaquin', color: 0x38bdf8, starter: false },
+  { id: 'flor', name: 'Flor', color: 0x4ade80, starter: false },
+  { id: 'alberto', name: 'Alberto', color: 0xc084fc, starter: false },
+  { id: 'rody', name: 'Rody', color: 0x2dd4bf, starter: false },
+  { id: 'cris', name: 'Cris', color: 0xf97316, starter: false },
+  { id: 'crispy', name: 'Crispy', color: 0x818cf8, starter: false },
 ] as const;
 
 export const DEFAULT_PARTY_SELECTION: RosterCharacterId[] = ['carol'];
@@ -58,11 +58,4 @@ export function getRosterCharacter(id: RosterCharacterId) {
   const character = ROSTER.find((entry) => entry.id === id);
   if (!character) throw new Error(`Unknown roster character: ${id}`);
   return character;
-}
-
-export function getLockedHint(character: RosterCharacter) {
-  if (character.unlock === 'mvp_rescue') {
-    return 'Rescátalo en la cancha';
-  }
-  return 'Rescátalo en otro nivel';
 }

@@ -1,6 +1,7 @@
 import { COMBAT } from '../config/combat';
+import { PLAYER } from '../config/constants';
 import { isEnemyTarget } from './damageRules';
-import type { CombatTarget } from '../types/combat';
+import { applyHit, type CombatTarget } from '../types/combat';
 import { createCenteredHitbox, hitboxesOverlap } from './overlap';
 
 export class PairSpecial {
@@ -28,14 +29,15 @@ export class PairSpecial {
     this.charge = 0;
     this.flashUntil = 0;
 
-    const hitbox = createCenteredHitbox(originX, originY, COMBAT.specialRadius * 2, COMBAT.specialRadius);
+    // Centered at chest height (origin is the players' feet), like a normal swing.
+    const hitbox = createCenteredHitbox(originX, originY - PLAYER.bodyHeight / 2, COMBAT.specialRadius * 2, COMBAT.specialRadius);
     let hits = 0;
 
     for (const target of targets) {
       if (!isEnemyTarget(target)) continue;
       if (!target.isActive || target.combatant.isDefeated) continue;
       if (!hitboxesOverlap(hitbox, target.hurtbox, COMBAT.depthTolerance + 20)) continue;
-      if (target.combatant.takeDamage(COMBAT.specialDamage, now)) {
+      if (applyHit(target, COMBAT.specialDamage, now, { attackerX: originX, attackerIndex: -1, kind: 'special' })) {
         target.onHit(now);
         hits += 1;
       }

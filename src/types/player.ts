@@ -13,11 +13,11 @@ export interface PlayerConfig {
 }
 
 export const KEYBOARD_CONTROL_HINTS = [
-  'WASD · J golpe · K especial · Espacio esquiva · E usar',
-  'Flechas · L golpe · O especial · . esquiva · P usar',
+  'WASD · J golpe/usar · K especial · Espacio esquiva',
+  'Flechas · L golpe/usar · O especial · . esquiva',
 ] as const;
 
-export const GAMEPAD_CONTROL_HINT = 'Control: X golpe · Y especial · A esquiva · B usar';
+export const GAMEPAD_CONTROL_HINT = 'Control: X golpe/usar · Y especial · A esquiva';
 
 export function getControlHintLines(playerCount: PlayerCount): string[] {
   if (playerCount === 1) {

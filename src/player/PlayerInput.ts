@@ -6,7 +6,7 @@ export interface MovementVector {
   y: number;
 }
 
-type Action = 'attack' | 'dodge' | 'special' | 'interact';
+type Action = 'attack' | 'dodge' | 'special';
 
 type KeyCodes = {
   up: string;
@@ -23,14 +23,13 @@ type KeySet = {
 } & Record<Action, Phaser.Input.Keyboard.Key>;
 
 const KEYBOARD_LAYOUTS: readonly KeyCodes[] = [
-  { up: 'W', down: 'S', left: 'A', right: 'D', attack: 'J', dodge: 'SPACE', special: 'K', interact: 'E' },
-  { up: 'UP', down: 'DOWN', left: 'LEFT', right: 'RIGHT', attack: 'L', dodge: 'PERIOD', special: 'O', interact: 'P' },
+  { up: 'W', down: 'S', left: 'A', right: 'D', attack: 'J', dodge: 'SPACE', special: 'K' },
+  { up: 'UP', down: 'DOWN', left: 'LEFT', right: 'RIGHT', attack: 'L', dodge: 'PERIOD', special: 'O' },
 ];
 
 /** Standard-mapping gamepad button indices (Xbox labels). */
 const PAD_BUTTONS: Record<Action, number> = {
   dodge: 0, // A
-  interact: 1, // B
   attack: 2, // X
   special: 3, // Y
 };
@@ -109,8 +108,9 @@ export class PlayerInput {
     return this.pressedByAny(activeCount, 'special');
   }
 
-  interactPressedByAny(activeCount: number) {
-    return this.pressedByAny(activeCount, 'interact');
+  /** Attack doubles as the interact/confirm button (inspect objects, close messages). */
+  attackPressedByAny(activeCount: number) {
+    return this.pressedByAny(activeCount, 'attack');
   }
 
   private pressedByAny(activeCount: number, action: Action) {
@@ -164,6 +164,5 @@ function createKeySet(keyboard: Phaser.Input.Keyboard.KeyboardPlugin, codes: Key
     attack: keyboard.addKey(codes.attack),
     dodge: keyboard.addKey(codes.dodge),
     special: keyboard.addKey(codes.special),
-    interact: keyboard.addKey(codes.interact),
   };
 }

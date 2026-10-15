@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
 import { PLAYER } from '../config/constants';
-import { DEBUG_HITBOXES } from '../config/debug';
+import { DEBUG_HITBOXES, debugState } from '../config/debug';
 import { COMBAT } from '../config/combat';
 import { COMBAT_TEAM, isEnemyTarget } from '../combat/damageRules';
 import { Combatant } from '../combat/Combatant';
 import { createCenteredHitbox, drawHitboxOutline, hitboxesOverlap } from '../combat/overlap';
-import type { CombatTarget, HitboxRect, MovementBounds } from '../types/combat';
+import { applyHit, type CombatTarget, type HitboxRect, type MovementBounds } from '../types/combat';
 import type { PlayerConfig } from '../types/player';
 import { soundManager } from '../systems/soundManager';
-import { FONTS } from '../ui/theme';
+import { textStyle } from '../ui/theme';
 import { applyDepthSort } from '../world/depthSort';
 import { clampToWalkLane, getWalkLaneForX } from '../world/walkLane';
 import { BODY_COLLISION, resolveBlockedMovement, type BodySnapshot } from '../world/bodyCollision';
@@ -46,6 +46,8 @@ export class Player {
   private attackHitRegistered = false;
   private dodgeDirection: MovementVector = { x: 1, y: 0 };
   private down = false;
+  /** Held by an abduction beam: can't move, attack or dodge until released. */
+  private captured = false;
   private readonly scene: Phaser.Scene;
   private readonly hurtboxDebug?: Phaser.GameObjects.Graphics;
   private movementBounds: MovementBounds | null = null;
@@ -69,11 +71,9 @@ export class Player {
       .setTint(config.color);
 
     const label = scene.add
-      .text(0, -58, config.name, {
-        fontFamily: FONTS.ui,
-        fontSize: '16px',
+      .text(0, -58, config.name, textStyle('bodySmall', {
         color: '#ffffff',
-      })
+      }))
       .setOrigin(0.5);
 
     this.container.add([this.sprite, label]);
@@ -81,6 +81,7 @@ export class Player {
     applyDepthSort(this.container, this.container.y);
 
     this.combatant = new Combatant(COMBAT.playerMaxHealth, onHealthChanged, () => {
+      this.setCaptured(false);
       this.down = true;
       this.sprite.setAlpha(0.45);
       this.sprite.play(HERO_ANIMS.fall);
@@ -139,7 +140,25 @@ export class Player {
     return this.isDodging || this.combatant.isInvulnerable(now);
   }
 
+  get isCaptured() {
+    return this.captured;
+  }
+
+  setCaptured(captured: boolean) {
+    if (this.captured === captured) return;
+    this.captured = captured;
+    this.isAttacking = false;
+    this.isDodging = false;
+    this.sprite.setY(HERO_DISPLAY.footY - (captured ? 28 : 0));
+    if (captured) {
+      this.sprite.setTint(0x67e8f9);
+    } else if (this.isAlive) {
+      this.sprite.setTint(this.tintColor);
+    }
+  }
+
   resetForEncounter(x: number, y: number) {
+    this.setCaptured(false);
     this.down = false;
     this.isAttacking = false;
     this.isDodging = false;
@@ -152,8 +171,17 @@ export class Player {
     this.sprite.play(HERO_ANIMS.idle);
   }
 
+  /** Between fights: heal the living and get a downed partner back on their feet. */
+  recoverBetweenEncounters(healAmount: number) {
+    if (this.isAlive) {
+      this.combatant.heal(healAmount);
+    } else {
+      this.resetForEncounter(this.x, this.y);
+    }
+  }
+
   takeDamage(amount: number, now: number) {
-    if (!this.isAlive || this.isInvulnerable(now)) return false;
+    if (!this.isAlive || this.isInvulnerable(now) || debugState.invincible) return false;
     const hit = this.combatant.takeDamage(amount, now);
     if (hit) {
       soundManager.playPlayerHurt();
@@ -180,7 +208,7 @@ export class Player {
 
     this.movementBounds = bounds;
 
-    if (!this.isAlive) {
+    if (!this.isAlive || this.captured) {
       this.drawDebugHitboxes();
       return false;
     }
@@ -282,7 +310,8 @@ export class Player {
       if (!isEnemyTarget(target)) continue;
       if (!target.isActive || target.combatant.isDefeated) continue;
       if (!hitboxesOverlap(hitbox, target.hurtbox, COMBAT.depthTolerance)) continue;
-      if (!target.combatant.takeDamage(COMBAT.playerAttackDamage, now)) continue;
+      const info = { attackerX: this.container.x, attackerIndex: this.index, kind: 'melee' as const };
+      if (!applyHit(target, COMBAT.playerAttackDamage, now, info)) continue;
       target.onHit(now);
       this.attackHitRegistered = true;
       return true;
@@ -326,7 +355,7 @@ export class Player {
       desiredX,
       desiredY,
       bodyBlockers,
-      BODY_COLLISION.depthTolerance,
+      BODY_COLLISION.depthRatio,
     );
 
     this.setWorldPosition(resolved.x, resolved.y);

@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import {
   getDefaultParty,
-  getLockedHint,
   getRosterCharacter,
   ROSTER,
   type RosterCharacter,
@@ -9,16 +8,18 @@ import {
 } from '../data/roster';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants';
 import {
+  getLockedHint,
   getUnlockedCharacterIds,
   isCharacterUnlocked,
   sanitizePartySelection,
   type PartySelection,
 } from '../systems/rosterProgress';
-import { getPlayerCount } from '../systems/session';
+import { getCurrentLevel, getPlayerCount } from '../systems/session';
 import type { PlayerCount } from '../types/player';
-import { COLORS, FONTS } from '../ui/theme';
+import { COLORS, textStyle } from '../ui/theme';
 import { createButton } from '../ui/createButton';
 import { bindMenuInput } from '../ui/menuInput';
+import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
 
 const GRID = {
   columns: 5,
@@ -45,13 +46,12 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.playerCount = getPlayerCount(this.registry);
     this.party = this.initialParty();
     this.cameras.main.setBackgroundColor(COLORS.background);
+    addMenuBackground(this, MENU_TEXTURES.menu, 0.35);
 
     this.add
-      .text(GAME_WIDTH / 2, 48, this.playerCount === 1 ? 'Elige tu personaje' : 'Elijan su equipo', {
-        fontFamily: FONTS.title,
-        fontSize: '40px',
+      .text(GAME_WIDTH / 2, 48, this.playerCount === 1 ? 'Elige tu personaje' : 'Elijan su equipo', textStyle('display', {
         color: COLORS.textBright,
-      })
+      }))
       .setOrigin(0.5);
 
     const instructions =
@@ -59,19 +59,20 @@ export class CharacterSelectScene extends Phaser.Scene {
         ? 'Elige a un amigo desbloqueado.'
         : 'Elijan 2 amigos desbloqueados. Clic de nuevo para quitar.';
     this.add
-      .text(GAME_WIDTH / 2, 88, instructions, {
-        fontFamily: FONTS.ui,
-        fontSize: '17px',
+      .text(GAME_WIDTH / 2, 88, instructions, textStyle('bodySmall', {
         color: COLORS.textMuted,
-      })
+      }))
       .setOrigin(0.5);
 
     this.partySummaryText = this.add
-      .text(GAME_WIDTH / 2, 128, '', {
-        fontFamily: FONTS.mono,
-        fontSize: '16px',
-        color: COLORS.text,
-      })
+      .text(GAME_WIDTH / 2, 128, '', textStyle('bodySmall'))
+      .setOrigin(0.5);
+
+    const level = getCurrentLevel(this.registry);
+    this.add
+      .text(GAME_WIDTH / 2, 165, `Nivel ${level.id}: ${level.title}`, textStyle('bodySmall', {
+        color: '#fbbf24',
+      }))
       .setOrigin(0.5);
 
     this.createRosterGrid();
@@ -89,16 +90,14 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.refreshUi();
 
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 44, 'Enter o botón A para empezar · Esc o B para volver', {
-        fontFamily: FONTS.mono,
-        fontSize: '14px',
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 44, 'Enter, J o botón A para empezar · Esc o B para volver', textStyle('label', {
         color: COLORS.textMuted,
-      })
+      }))
       .setOrigin(0.5);
 
     bindMenuInput(this, {
       confirm: () => this.startLevel(),
-      back: () => this.scene.start('PlayerCountScene'),
+      back: () => this.scene.start('LevelSelectScene'),
     });
 
     createButton(this, {
@@ -109,7 +108,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       label: 'ATRÁS',
       color: COLORS.prop,
       hoverColor: COLORS.propBorder,
-      onClick: () => this.scene.start('PlayerCountScene'),
+      onClick: () => this.scene.start('LevelSelectScene'),
     });
   }
 
@@ -132,14 +131,12 @@ export class CharacterSelectScene extends Phaser.Scene {
     for (const [index, character] of ROSTER.entries()) {
       const column = index % columns;
       const row = Math.floor(index / columns);
-      const rowCount = row === 2 ? 3 : columns;
+      // The last row may be shorter; it's centered like the full ones.
+      const rowCount = Math.min(columns, ROSTER.length - row * columns);
       const rowWidth = rowCount * cardWidth + (rowCount - 1) * gapX;
       const rowOriginX = (GAME_WIDTH - rowWidth) / 2;
-      const rowColumn = row === 2 ? index - 10 : column;
-      const x = rowOriginX + rowColumn * (cardWidth + gapX) + cardWidth / 2;
+      const x = rowOriginX + column * (cardWidth + gapX) + cardWidth / 2;
       const y = topY + row * (cardHeight + gapY) + cardHeight / 2;
-
-      if (row === 2 && column >= 3) continue;
 
       this.createRosterCard(character, x, y, cardWidth, cardHeight);
     }
@@ -151,21 +148,17 @@ export class CharacterSelectScene extends Phaser.Scene {
       .setStrokeStyle(2, COLORS.propBorder);
 
     this.add
-      .text(x, y - 10, character.name, {
-        fontFamily: FONTS.ui,
-        fontSize: '20px',
+      .text(x, y - 10, character.name, textStyle('body', {
         color: '#ffffff',
-      })
+      }))
       .setOrigin(0.5);
 
     const statusText = this.add
-      .text(x, y + 18, '', {
-        fontFamily: FONTS.mono,
-        fontSize: '12px',
+      .text(x, y + 18, '', textStyle('caption', {
         color: COLORS.textMuted,
         align: 'center',
         wordWrap: { width: width - 12 },
-      })
+      }))
       .setOrigin(0.5);
 
     this.cardBackgrounds.set(character.id, background);

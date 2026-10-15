@@ -11,41 +11,13 @@ export const COMBAT = {
   hitboxHeight: 42,
   hurtboxPadding: 4,
   invulnerabilityMs: 400,
-  dodgeDurationMs: 220,
+  dodgeDurationMs: 300,
   dodgeCooldownMs: 500,
-  dodgeSpeed: 420,
+  /** 520 px/s for 300 ms ≈ 156 px per dodge. */
+  dodgeSpeed: 520,
   specialMax: 100,
   specialGainPerHit: 12,
   specialDamage: 28,
   specialRadius: 140,
-} as const;
-
-export const ENEMY_BODY = {
-  width: 48,
-  height: 72,
-} as const;
-
-export const ENEMY_STATS = {
-  basic: {
-    maxHealth: 30,
-    moveSpeed: 145,
-    attackDamage: 8,
-    attackRange: 58,
-    attackWindupMs: 420,
-    attackActiveMs: 180,
-    attackCooldownMs: 1500,
-    color: 0x8b5cf6,
-    label: 'Falso invasor',
-  },
-  miniBoss: {
-    maxHealth: 120,
-    moveSpeed: 105,
-    attackDamage: 15,
-    attackRange: 62,
-    attackWindupMs: 620,
-    attackActiveMs: 220,
-    attackCooldownMs: 2000,
-    color: 0xc026d3,
-    label: 'Líder del escuadrón',
-  },
+  recoveryBetweenEncounters: 40,
 } as const;

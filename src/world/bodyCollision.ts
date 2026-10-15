@@ -1,9 +1,11 @@
-import Phaser from 'phaser';
-
 export const BODY_COLLISION = {
   playerRadius: 24,
   enemyRadius: 24,
-  depthTolerance: 30,
+  /**
+   * Bodies are ovals on the floor: as wide as their radius, `depthRatio` times as deep.
+   * Two 24px bodies keep 48px apart side by side and about 29px apart in depth.
+   */
+  depthRatio: 0.6,
   separationIterations: 4,
 } as const;
 
@@ -18,22 +20,23 @@ export type BodyActor = {
   setWorldPosition(x: number, y: number): void;
 };
 
-function onSameDepth(aY: number, bY: number, depthTolerance: number) {
-  return Math.abs(aY - bY) <= depthTolerance;
+/** Distance between two bodies in "oval units": below 1 means they overlap. */
+function ovalDistance(ax: number, ay: number, aRadius: number, bx: number, by: number, bRadius: number, depthRatio: number) {
+  const reach = aRadius + bRadius;
+  if (reach <= 0) return Infinity;
+  return Math.hypot((bx - ax) / reach, (by - ay) / (reach * depthRatio));
 }
 
-function circlesOverlap(
+function bodiesOverlap(
   ax: number,
   ay: number,
   aRadius: number,
   bx: number,
   by: number,
   bRadius: number,
-  depthTolerance: number,
+  depthRatio: number,
 ) {
-  if (!onSameDepth(ay, by, depthTolerance)) return false;
-  const minDistance = aRadius + bRadius;
-  return Phaser.Math.Distance.Between(ax, ay, bx, by) < minDistance;
+  return ovalDistance(ax, ay, aRadius, bx, by, bRadius, depthRatio) < 1;
 }
 
 export function resolveBlockedMovement(
@@ -41,11 +44,11 @@ export function resolveBlockedMovement(
   targetX: number,
   targetY: number,
   others: BodySnapshot[],
-  depthTolerance: number,
+  depthRatio: number,
 ) {
   if (
     !others.some((other) =>
-      circlesOverlap(targetX, targetY, self.radius, other.x, other.y, other.radius, depthTolerance),
+      bodiesOverlap(targetX, targetY, self.radius, other.x, other.y, other.radius, depthRatio),
     )
   ) {
     return { x: targetX, y: targetY };
@@ -53,7 +56,7 @@ export function resolveBlockedMovement(
 
   if (
     !others.some((other) =>
-      circlesOverlap(targetX, self.y, self.radius, other.x, other.y, other.radius, depthTolerance),
+      bodiesOverlap(targetX, self.y, self.radius, other.x, other.y, other.radius, depthRatio),
     )
   ) {
     return { x: targetX, y: self.y };
@@ -61,7 +64,7 @@ export function resolveBlockedMovement(
 
   if (
     !others.some((other) =>
-      circlesOverlap(self.x, targetY, self.radius, other.x, other.y, other.radius, depthTolerance),
+      bodiesOverlap(self.x, targetY, self.radius, other.x, other.y, other.radius, depthRatio),
     )
   ) {
     return { x: self.x, y: targetY };
@@ -73,28 +76,29 @@ export function resolveBlockedMovement(
 function separatePair(
   a: BodySnapshot & { setPosition(x: number, y: number): void },
   b: BodySnapshot & { setPosition(x: number, y: number): void },
-  depthTolerance: number,
+  depthRatio: number,
 ) {
-  if (!onSameDepth(a.y, b.y, depthTolerance)) return;
+  const reach = a.radius + b.radius;
+  if (reach <= 0) return;
+  // Work in oval space (depth stretched to match width), push apart, then map back.
+  const nx = (b.x - a.x) / reach;
+  const ny = (b.y - a.y) / (reach * depthRatio);
+  const distance = Math.hypot(nx, ny);
+  if (distance >= 1) return;
 
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const distance = Math.hypot(dx, dy);
-  const minDistance = a.radius + b.radius;
-  if (distance >= minDistance) return;
+  const dirX = distance === 0 ? 1 : nx / distance;
+  const dirY = distance === 0 ? 0 : ny / distance;
+  const push = (1 - distance) * 0.5;
+  const pushX = dirX * push * reach;
+  const pushY = dirY * push * reach * depthRatio;
 
-  const overlap = minDistance - distance;
-  const nx = distance === 0 ? 1 : dx / distance;
-  const ny = distance === 0 ? 0 : dy / distance;
-  const push = overlap * 0.5;
-
-  a.setPosition(a.x - nx * push, a.y - ny * push);
-  b.setPosition(b.x + nx * push, b.y + ny * push);
+  a.setPosition(a.x - pushX, a.y - pushY);
+  b.setPosition(b.x + pushX, b.y + pushY);
 }
 
 export function separateActors(
   actors: BodyActor[],
-  depthTolerance: number,
+  depthRatio: number,
   iterations = BODY_COLLISION.separationIterations,
 ) {
   if (actors.length < 2) return;
@@ -117,7 +121,7 @@ export function separateActors(
   for (let pass = 0; pass < iterations; pass += 1) {
     for (let i = 0; i < states.length; i += 1) {
       for (let j = i + 1; j < states.length; j += 1) {
-        separatePair(states[i], states[j], depthTolerance);
+        separatePair(states[i], states[j], depthRatio);
       }
     }
   }

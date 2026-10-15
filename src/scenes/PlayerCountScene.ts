@@ -4,7 +4,8 @@ import { setPlayerCount } from '../systems/session';
 import type { PlayerCount } from '../types/player';
 import { createButton } from '../ui/createButton';
 import { bindMenuInput } from '../ui/menuInput';
-import { COLORS, FONTS } from '../ui/theme';
+import { COLORS, textStyle } from '../ui/theme';
+import { addMenuBackground, MENU_TEXTURES } from '../ui/menuBackground';
 
 const OPTIONS: readonly { count: PlayerCount; label: string; detail: string; x: number }[] = [
   {
@@ -33,13 +34,12 @@ export class PlayerCountScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor(COLORS.background);
+    addMenuBackground(this, MENU_TEXTURES.menu, 0.35);
 
     this.add
-      .text(GAME_WIDTH / 2, 150, '¿Cuántos jugadores?', {
-        fontFamily: FONTS.title,
-        fontSize: '44px',
+      .text(GAME_WIDTH / 2, 150, '¿Cuántos jugadores?', textStyle('display', {
         color: COLORS.textBright,
-      })
+      }))
       .setOrigin(0.5);
 
     this.highlight = this.add
@@ -59,12 +59,10 @@ export class PlayerCountScene extends Phaser.Scene {
       });
 
       this.add
-        .text(option.x, BUTTON.y + 80, option.detail, {
-          fontFamily: FONTS.ui,
-          fontSize: '17px',
+        .text(option.x, BUTTON.y + 80, option.detail, textStyle('bodySmall', {
           color: COLORS.textMuted,
           align: 'center',
-        })
+        }))
         .setOrigin(0.5, 0);
     }
 
@@ -73,7 +71,7 @@ export class PlayerCountScene extends Phaser.Scene {
         GAME_WIDTH / 2,
         540,
         'Si usas control, presiona cualquier botón para que el navegador lo detecte.',
-        { fontFamily: FONTS.ui, fontSize: '16px', color: COLORS.textMuted },
+        textStyle('bodySmall', { color: COLORS.textMuted }),
       )
       .setOrigin(0.5);
 
@@ -105,7 +103,7 @@ export class PlayerCountScene extends Phaser.Scene {
 
   private choose(count: PlayerCount) {
     setPlayerCount(this.registry, count);
-    this.scene.start('CharacterSelectScene');
+    this.scene.start('LevelSelectScene');
   }
 
   private back() {

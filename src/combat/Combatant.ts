@@ -48,6 +48,11 @@ export class Combatant {
     return true;
   }
 
+  heal(amount: number) {
+    this.currentHealth = Math.min(this.maxHealth, this.currentHealth + amount);
+    this.onHealthChanged?.(this.currentHealth, this.maxHealth);
+  }
+
   reset() {
     this.currentHealth = this.maxHealth;
     this.invulnerableUntil = 0;
