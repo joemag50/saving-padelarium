@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FINAL_BOSS } from '../config/boss';
 import { COMBAT } from '../config/combat';
+import { actorPx } from '../config/constants';
 import { DEBUG_HITBOXES } from '../config/debug';
 import { COMBAT_TEAM } from '../combat/damageRules';
 import { Combatant } from '../combat/Combatant';
@@ -135,13 +136,12 @@ export class SupremoBoss implements EncounterActor {
   }
 
   get hurtbox(): HitboxRect {
-    // Centered at the same height as the players' swing (36px above the feet), so hits
-    // connect from the same depth range as against any other enemy.
     return createCenteredHitbox(
       this.container.x,
-      this.container.y - 36,
+      this.container.y - FINAL_BOSS.body.height * 0.3,
       FINAL_BOSS.body.width + COMBAT.hurtboxPadding,
       FINAL_BOSS.body.height * 0.75,
+      this.container.y,
     );
   }
 
@@ -452,7 +452,7 @@ export class SupremoBoss implements EncounterActor {
   }
 
   private swipeHitbox() {
-    return createCenteredHitbox(this.container.x + this.facing * 70, this.container.y - 36, FINAL_BOSS.swipe.range, 60);
+    return createCenteredHitbox(this.container.x + this.facing * actorPx(70), this.container.y - actorPx(36), FINAL_BOSS.swipe.range, actorPx(60), this.container.y);
   }
 
   // --- Phase 2: charge ------------------------------------------------------------------------

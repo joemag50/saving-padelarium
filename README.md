@@ -109,6 +109,7 @@ Agrega `?debug` a la URL (por ejemplo `http://localhost:5173/?debug`):
 |---|---|
 | `I` | Modo invencible (se mantiene entre niveles hasta recargar) |
 | `N` | Derrota a todos los enemigos en pantalla |
+| `H` | Quita el 95 % de la vida a cada jugador (dos veces seguidas = K.O.) |
 
 También dibuja las cajas de golpe y expone el juego en la consola como `window.__game`.
 

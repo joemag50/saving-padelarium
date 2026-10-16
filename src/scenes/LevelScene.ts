@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
 import { COMBAT } from '../config/combat';
-import { DEBUG_DEFEAT_ALL_KEY, DEBUG_INVINCIBLE_KEY, DEBUG_MODE, debugState } from '../config/debug';
+import {
+  DEBUG_DEFEAT_ALL_KEY,
+  DEBUG_DRAIN_HEALTH_FRACTION,
+  DEBUG_DRAIN_HEALTH_KEY,
+  DEBUG_INVINCIBLE_KEY,
+  DEBUG_MODE,
+  debugState,
+} from '../config/debug';
 import {
   buildEncounter1Waves,
   buildEncounter2Waves,
@@ -9,6 +16,7 @@ import {
   LEVEL_ZONES,
 } from '../config/level';
 import {
+  actorPx,
   CAMERA,
   GAME_HEIGHT,
   GAME_WIDTH,
@@ -18,6 +26,7 @@ import {
   SPAWN_POINTS,
 } from '../config/constants';
 import { EncounterManager } from '../core/EncounterManager';
+import { playRespawnEffect, playVanishEffect } from '../world/respawnEffect';
 import type { LevelState } from '../data/levelFlow';
 import type { LevelDefinition } from '../data/levels';
 import { getDefaultParty, getRosterCharacter } from '../data/roster';
@@ -45,6 +54,9 @@ type DepthSortable = Phaser.GameObjects.GameObject & {
 /** Standard-mapping gamepad Start button. */
 const GAMEPAD_START = 9;
 
+/** Timing (ms) of the knockout → respawn sequence when every player is down. */
+const RESPAWN = { knockoutPauseMs: 1500, vanishMs: 350, gapMs: 250, appearMs: 550 } as const;
+
 export class LevelScene extends Phaser.Scene {
   private players: Player[] = [];
   private playerInput!: PlayerInput;
@@ -54,6 +66,8 @@ export class LevelScene extends Phaser.Scene {
   private cameraTarget!: Phaser.GameObjects.Container;
   private depthSorted: DepthSortable[] = [];
   private hitStopUntil = 0;
+  /** Everyone fell: the fight is frozen while they get beamed back to retry. */
+  private respawning = false;
   private level!: LevelDefinition;
 
   private rescuedFriends!: Phaser.GameObjects.Container;
@@ -84,6 +98,7 @@ export class LevelScene extends Phaser.Scene {
     this.pairSpecial = new PairSpecial();
     this.depthSorted = [];
     this.hitStopUntil = 0;
+    this.respawning = false;
     this.lockedCameraX = null;
 
     soundManager.ensureContext();
@@ -114,6 +129,13 @@ export class LevelScene extends Phaser.Scene {
       const defeatAll = () => this.encounterManager.defeatAll(this.time.now);
       keyboard.on(`keydown-${DEBUG_DEFEAT_ALL_KEY}`, defeatAll);
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => keyboard.off(`keydown-${DEBUG_DEFEAT_ALL_KEY}`, defeatAll));
+
+      // Twice in a row knocks a player out (each press takes 95% of max health).
+      const drainHealth = () => {
+        for (const player of this.players) player.debugDrainHealth(DEBUG_DRAIN_HEALTH_FRACTION, this.time.now);
+      };
+      keyboard.on(`keydown-${DEBUG_DRAIN_HEALTH_KEY}`, drainHealth);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => keyboard.off(`keydown-${DEBUG_DRAIN_HEALTH_KEY}`, drainHealth));
 
       const invincibleLabel = this.add
         .text(GAME_WIDTH / 2, 62, `MODO INVENCIBLE (${DEBUG_INVINCIBLE_KEY})`, textStyle('caption', { color: '#fde047' }))
@@ -180,7 +202,7 @@ export class LevelScene extends Phaser.Scene {
       this.cameras.main.shake(80, 0.002);
     }
 
-    if (this.encounterManager.active) {
+    if (this.encounterManager.active && !this.respawning) {
       this.encounterManager.update(time, deltaSeconds, players, (enemy) => bodyBlockersFor(enemy));
       this.checkEncounterFailure();
     }
@@ -237,13 +259,13 @@ export class LevelScene extends Phaser.Scene {
     this.rescuedFriends = this.add.container(LEVEL_ZONES.rescueX, 460).setVisible(false);
     const rescued = level.rescue.characters.map(getRosterCharacter);
     rescued.forEach((character, index) => {
-      const offsetX = (index - (rescued.length - 1) / 2) * 64;
+      const offsetX = (index - (rescued.length - 1) / 2) * actorPx(64);
       this.rescuedFriends.add(
-        this.add.rectangle(offsetX, 0, 48, 72, character.color).setStrokeStyle(2, 0xffffff, 0.4),
+        this.add.rectangle(offsetX, 0, PLAYER.bodyWidth, PLAYER.bodyHeight, character.color).setStrokeStyle(2, 0xffffff, 0.4),
       );
       this.rescuedFriends.add(
         this.add
-          .text(offsetX, -52, character.name, textStyle('label', { color: '#fff' }))
+          .text(offsetX, -PLAYER.bodyHeight / 2 - 16, character.name, textStyle('label', { color: '#fff' }))
           .setOrigin(0.5),
       );
     });
@@ -259,6 +281,7 @@ export class LevelScene extends Phaser.Scene {
         this,
         {
           index: playerIndex,
+          characterId: character.id,
           name: character.name,
           color: character.color,
           spawnX: spawn.x,
@@ -432,19 +455,43 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private checkEncounterFailure() {
-    if (this.players.some((player) => player.isAlive)) return;
-    this.restartActiveEncounter();
+    if (this.respawning || this.players.some((player) => player.isAlive)) return;
+    // Let the fall play out, then beam everyone back and retry the fight.
+    this.respawning = true;
+    soundManager.playKnockout();
+    this.time.delayedCall(RESPAWN.knockoutPauseMs, () => this.vanishParty());
   }
 
-  private restartActiveEncounter() {
+  /** A flash: enemies are gone and the fallen fade away in sparks. */
+  private vanishParty() {
+    this.cameras.main.flash(250, 220, 250, 255);
     this.encounterManager.clear();
+    for (const player of this.players) {
+      playVanishEffect(this, player.x, player.y, PLAYER.bodyHeight);
+      this.tweens.add({ targets: player.container, alpha: 0, duration: RESPAWN.vanishMs });
+    }
+    this.time.delayedCall(RESPAWN.vanishMs + RESPAWN.gapMs, () => this.respawnParty());
+  }
+
+  /** Back at the start of the room, beamed in, and the fight starts again. */
+  private respawnParty() {
     // Respawn inside the locked room so the retry starts on screen.
     const roomX = this.lockedCameraX ?? 0;
+    soundManager.playRespawn();
     for (const [index, player] of this.players.entries()) {
       const spawn = SPAWN_POINTS[index] ?? SPAWN_POINTS[0];
       player.resetForEncounter(roomX + spawn.x, spawn.y);
+      player.container.setAlpha(0);
+      playRespawnEffect(this, player.x, player.y, PLAYER.bodyHeight);
+      this.tweens.add({ targets: player.container, alpha: 1, delay: 150, duration: RESPAWN.appearMs });
     }
+    this.time.delayedCall(RESPAWN.appearMs + 150, () => {
+      this.respawning = false;
+      this.restartActiveEncounter();
+    });
+  }
 
+  private restartActiveEncounter() {
     if (this.flow.encounter2Started && !this.flow.encounter2Cleared) {
       this.startEncounter2();
       return;

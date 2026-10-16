@@ -5,6 +5,8 @@ export interface HitboxRect {
   y: number;
   width: number;
   height: number;
+  /** Feet of its owner: how deep on the floor it is. Boxes only meet on (about) the same depth. */
+  floorY: number;
 }
 
 /** Who landed a hit and how, for targets that react differently (shields, returned balls…). */

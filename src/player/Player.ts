@@ -12,8 +12,11 @@ import { textStyle } from '../ui/theme';
 import { applyDepthSort } from '../world/depthSort';
 import { clampToWalkLane, getWalkLaneForX } from '../world/walkLane';
 import { BODY_COLLISION, resolveBlockedMovement, type BodySnapshot } from '../world/bodyCollision';
-import { HERO_ANIMS, HERO_DISPLAY, HERO_TEXTURES } from './heroAssets';
+import { getHeroLook, heroAnimKey, heroIdleTexture, type HeroAnimName, type HeroLook } from './heroAssets';
 import type { MovementVector } from './PlayerInput';
+
+/** How long an early attack press is remembered (mashing never drops a punch). */
+const ATTACK_BUFFER_MS = 250;
 
 type PlayerUpdateOptions = {
   now: number;
@@ -36,6 +39,11 @@ export class Player {
 
   private readonly sprite: Phaser.GameObjects.Sprite;
   private readonly tintColor: number;
+  private readonly look: HeroLook;
+  /** Hurt animation plays until then (ms, LevelScene time). */
+  private hurtUntil = 0;
+  /** A press during a punch (or its cooldown) is kept this long and fires as soon as it can. */
+  private attackBufferedUntil = 0;
   private facing: 1 | -1 = 1;
   private isAttacking = false;
   private isDodging = false;
@@ -62,29 +70,33 @@ export class Player {
     this.index = config.index;
     this.displayName = config.name;
     this.tintColor = config.color;
+    this.look = getHeroLook(config.characterId);
 
     this.container = scene.add.container(config.spawnX, config.spawnY);
     this.sprite = scene.add
-      .sprite(0, HERO_DISPLAY.footY, HERO_TEXTURES.idle)
+      .sprite(0, this.look.spriteY, heroIdleTexture(this.look))
       .setOrigin(0.5, 1)
-      .setScale(HERO_DISPLAY.scale)
-      .setTint(config.color);
+      .setScale(this.look.scale);
+    this.restoreTint();
 
     const label = scene.add
-      .text(0, -58, config.name, textStyle('bodySmall', {
+      .text(0, this.look.labelY, config.name, textStyle('bodySmall', {
         color: '#ffffff',
       }))
       .setOrigin(0.5);
 
     this.container.add([this.sprite, label]);
-    this.sprite.play(HERO_ANIMS.idle);
+    this.play('idle');
     applyDepthSort(this.container, this.container.y);
 
     this.combatant = new Combatant(COMBAT.playerMaxHealth, onHealthChanged, () => {
       this.setCaptured(false);
       this.down = true;
-      this.sprite.setAlpha(0.45);
-      this.sprite.play(HERO_ANIMS.fall);
+      this.play('fall');
+      // Fade once they're on the floor, so the fall reads clearly.
+      this.sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+        if (this.down) this.sprite.setAlpha(0.6);
+      });
       onDown?.();
     });
 
@@ -138,6 +150,7 @@ export class Player {
       this.container.y - PLAYER.bodyHeight / 2,
       PLAYER.bodyWidth + COMBAT.hurtboxPadding,
       PLAYER.bodyHeight + COMBAT.hurtboxPadding,
+      this.container.y,
     );
   }
 
@@ -154,11 +167,11 @@ export class Player {
     this.captured = captured;
     this.isAttacking = false;
     this.isDodging = false;
-    this.sprite.setY(HERO_DISPLAY.footY - (captured ? 28 : 0));
+    this.sprite.setY(this.look.spriteY - (captured ? 28 : 0));
     if (captured) {
       this.sprite.setTint(0x67e8f9);
     } else if (this.isAlive) {
-      this.sprite.setTint(this.tintColor);
+      this.restoreTint();
     }
   }
 
@@ -168,12 +181,18 @@ export class Player {
     this.isAttacking = false;
     this.isDodging = false;
     this.sprite.setAlpha(1);
-    this.sprite.clearTint();
-    this.sprite.setTint(this.tintColor);
+    this.restoreTint();
     this.container.setPosition(x, y);
     applyDepthSort(this.container, y);
     this.combatant.reset();
-    this.sprite.play(HERO_ANIMS.idle);
+    this.play('idle');
+  }
+
+  /** Debug (H key): lose this fraction of max health at once, ignoring invulnerability. */
+  debugDrainHealth(fraction: number, now: number) {
+    if (!this.isAlive) return;
+    this.combatant.invulnerableUntil = 0;
+    this.combatant.takeDamage(Math.ceil(this.combatant.maxHealth * fraction), now);
   }
 
   /** Between fights: heal the living and get a downed partner back on their feet. */
@@ -192,8 +211,12 @@ export class Player {
       soundManager.playPlayerHurt();
       this.sprite.setTint(0xff6b6b);
       this.scene.time.delayedCall(100, () => {
-        if (this.isAlive) this.sprite.setTint(this.tintColor);
+        if (this.isAlive) this.restoreTint();
       });
+      if (this.isAlive && !this.isAttacking && !this.isDodging) {
+        this.play('hurt');
+        this.hurtUntil = now + 200;
+      }
     }
     return hit;
   }
@@ -222,7 +245,9 @@ export class Player {
       this.startDodge(movement);
     }
 
-    if (attackPressed && !this.isAttacking && !this.isDodging && now >= this.attackCooldownUntil) {
+    if (attackPressed) this.attackBufferedUntil = now + ATTACK_BUFFER_MS;
+    if (now < this.attackBufferedUntil && !this.isAttacking && !this.isDodging && now >= this.attackCooldownUntil) {
+      this.attackBufferedUntil = 0;
       this.startAttack();
     }
 
@@ -244,7 +269,7 @@ export class Player {
       this.updateMovement(deltaSeconds, movement, speed, bounds, bodyBlockers);
     }
 
-    this.updateAnimation(movement);
+    this.updateAnimation(movement, now);
     this.drawDebugHitboxes();
     return hitConnected;
   }
@@ -266,7 +291,7 @@ export class Player {
     this.isAttacking = true;
     this.attackElapsedMs = 0;
     this.attackHitRegistered = false;
-    this.sprite.play(HERO_ANIMS.attack, true);
+    this.play('attack', true);
   }
 
   private endAttack(now: number) {
@@ -280,6 +305,12 @@ export class Player {
     this.combatant.invulnerableUntil = performance.now() + COMBAT.dodgeDurationMs + 80;
     this.dodgeDirection =
       movement.x !== 0 || movement.y !== 0 ? movement : { x: this.facing, y: 0 };
+    // Roll the way the dodge goes.
+    if (this.dodgeDirection.x !== 0) {
+      this.facing = this.dodgeDirection.x < 0 ? -1 : 1;
+      this.sprite.setFlipX(this.facing === -1);
+    }
+    if (this.look.characterId) this.play('dodge', true);
   }
 
   private endDodge(now: number) {
@@ -325,12 +356,12 @@ export class Player {
   }
 
   private getAttackHitbox() {
-    const offsetX = this.facing * (PLAYER.bodyWidth / 2 + COMBAT.hitboxWidth / 2 - 6);
     return createCenteredHitbox(
-      this.container.x + offsetX,
-      this.container.y - PLAYER.bodyHeight / 2,
+      this.container.x + this.facing * COMBAT.hitboxReach,
+      this.container.y - COMBAT.hitboxHeightAboveFeet,
       COMBAT.hitboxWidth,
       COMBAT.hitboxHeight,
+      this.container.y,
     );
   }
 
@@ -370,10 +401,10 @@ export class Player {
     this.sprite.setFlipX(this.facing === -1);
   }
 
-  private updateAnimation(movement: MovementVector) {
+  private updateAnimation(movement: MovementVector, now: number) {
     if (this.down) return;
 
-    if (this.isAttacking) {
+    if (this.isAttacking || now < this.hurtUntil) {
       return;
     }
 
@@ -381,15 +412,26 @@ export class Player {
     const running = Math.abs(movement.x) > 0.5 && movement.y === 0;
 
     if (this.isDodging) {
-      this.sprite.play(running ? HERO_ANIMS.run : HERO_ANIMS.walk, true);
+      // Rendered friends roll (started in startDodge); the template keeps moving its legs.
+      if (!this.look.characterId) this.play(running ? 'run' : 'walk', true);
       return;
     }
 
     if (moving) {
-      this.sprite.play(running ? HERO_ANIMS.run : HERO_ANIMS.walk, true);
+      this.play(running ? 'run' : 'walk', true);
       return;
     }
 
-    this.sprite.play(HERO_ANIMS.idle, true);
+    this.play('idle', true);
+  }
+
+  private play(anim: HeroAnimName, ignoreIfPlaying = false) {
+    this.sprite.play(heroAnimKey(this.look, anim), ignoreIfPlaying);
+  }
+
+  /** Template heroes wear their color as a tint; rendered friends already have their colors. */
+  private restoreTint() {
+    if (this.look.characterId) this.sprite.clearTint();
+    else this.sprite.setTint(this.tintColor);
   }
 }

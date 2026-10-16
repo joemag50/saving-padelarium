@@ -1,7 +1,7 @@
 /**
  * Every enemy type, with its stats and behavior tuning. Tweak speed, damage and timing here.
  * Health and damage are multiplied per level by `minionScale` (see `data/levels.ts`).
- * For reference: players walk at 220 px/s, have 100 HP and hit for 12.
+ * For reference: players walk at 270 px/s, have 250 HP and hit for 12.
  */
 
 export type EnemyKind = 'invasor' | 'veloz' | 'grandote' | 'tirador' | 'escudero' | 'humero' | 'miniBoss';
@@ -37,7 +37,13 @@ export type EnemyProfile = EnemyStats & {
   turnDelayMs?: number;
 };
 
-const BODY = { width: 48, height: 72 } as const;
+import { actorPx } from './constants';
+
+function body(width: number, height: number) {
+  return { width: actorPx(width), height: actorPx(height) };
+}
+
+const BODY = body(48, 72);
 
 export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
   /** The basic one: walks up and punches. */
@@ -49,7 +55,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     moveSpeed: 150,
     body: BODY,
     attackDamage: 8,
-    reach: 60,
+    reach: actorPx(60),
     attackWindupMs: 450,
     attackCooldownMs: 1300,
     superArmor: false,
@@ -62,7 +68,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'dasher',
     maxHealth: 20,
     moveSpeed: 235,
-    body: { width: 40, height: 64 },
+    body: body(40, 64),
     attackDamage: 7,
     reach: 230,
     attackWindupMs: 380,
@@ -78,9 +84,9 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'melee',
     maxHealth: 90,
     moveSpeed: 85,
-    body: { width: 64, height: 96 },
+    body: body(64, 96),
     attackDamage: 18,
-    reach: 78,
+    reach: actorPx(78),
     attackWindupMs: 750,
     attackCooldownMs: 2200,
     superArmor: true,
@@ -111,7 +117,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     moveSpeed: 115,
     body: BODY,
     attackDamage: 10,
-    reach: 62,
+    reach: actorPx(62),
     attackWindupMs: 520,
     attackCooldownMs: 1600,
     superArmor: false,
@@ -132,7 +138,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     attackCooldownMs: 3200,
     superArmor: false,
     shield: false,
-    smoke: { telegraphMs: 900, cloudMs: 2600, radius: 70, tickMs: 600 },
+    smoke: { telegraphMs: 900, cloudMs: 2600, radius: actorPx(70), tickMs: 600 },
   },
   /** Each level's leader (name and color come from the level). */
   miniBoss: {
@@ -141,9 +147,9 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'melee',
     maxHealth: 120,
     moveSpeed: 115,
-    body: { width: 56, height: 88 },
+    body: body(56, 88),
     attackDamage: 15,
-    reach: 66,
+    reach: actorPx(66),
     attackWindupMs: 600,
     attackCooldownMs: 1800,
     superArmor: true,
@@ -155,7 +161,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
 export const MAX_MELEE_ATTACKERS = 2;
 
 /** Waiting enemies circle at this distance from their target. */
-export const WAIT_DISTANCE = 230;
+export const WAIT_DISTANCE = actorPx(200);
 
 /** A melee enemy hands its attack slot to someone else after this many attacks. */
 export const ATTACKS_PER_TURN = 2;

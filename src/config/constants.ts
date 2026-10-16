@@ -5,6 +5,18 @@ export const GAME_HEIGHT = 720;
 export const LEVEL_WIDTH = GAME_WIDTH * 2;
 export const LEVEL_HEIGHT = 720;
 
+/**
+ * Size of characters and enemies relative to the stage. Bodies, hitboxes and fighting
+ * distances are written at the original size and multiplied by this, so it can be retuned
+ * in one place.
+ */
+export const ACTOR_SCALE = 1.5;
+
+/** A length measured at the original actor size, in today's pixels. */
+export function actorPx(px: number) {
+  return Math.round(px * ACTOR_SCALE);
+}
+
 /** Beat-'em-up walk lane on the Y axis (screen depth). Applies to the whole level. */
 export const WALK_LANE = {
   minY: 310,
@@ -17,9 +29,10 @@ export type WalkLaneBounds = {
 };
 
 export const PLAYER = {
-  moveSpeed: 220,
-  bodyWidth: 48,
-  bodyHeight: 72,
+  moveSpeed: 270,
+  /** Hurtbox: about the torso's width and the whole body's height (rendered friends, ~165 px). */
+  bodyWidth: actorPx(31),
+  bodyHeight: actorPx(105),
 } as const;
 
 export const CAMERA = {

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COMBAT_TEAM } from '../combat/damageRules';
 import { Combatant } from '../combat/Combatant';
 import { createCenteredHitbox } from '../combat/overlap';
+import { actorPx } from '../config/constants';
 import type { EncounterActor } from '../core/EncounterManager';
 import type { Player } from '../player/Player';
 import type { HitboxRect } from '../types/combat';
@@ -66,7 +67,7 @@ export class AbductionBeam implements EncounterActor {
   }
 
   get hurtbox(): HitboxRect {
-    return createCenteredHitbox(this.container.x, this.container.y - 36, this.tuning.radius * 2, 90);
+    return createCenteredHitbox(this.container.x, this.container.y - actorPx(36), this.tuning.radius * 2, actorPx(90), this.container.y);
   }
 
   getBodySnapshot() {

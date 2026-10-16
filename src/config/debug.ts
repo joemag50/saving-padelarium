@@ -10,6 +10,10 @@ export const DEBUG_DEFEAT_ALL_KEY = 'N';
 /** Key that toggles invincibility for every player (stays on across levels and retries). */
 export const DEBUG_INVINCIBLE_KEY = 'I';
 
+/** Key that takes 95% of every living player's health away, to test knockouts and comebacks. */
+export const DEBUG_DRAIN_HEALTH_KEY = 'H';
+export const DEBUG_DRAIN_HEALTH_FRACTION = 0.95;
+
 /** Mutable debug switches, shared by the whole session. */
 export const debugState = {
   invincible: false,

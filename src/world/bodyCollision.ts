@@ -1,6 +1,8 @@
+import { actorPx } from '../config/constants';
+
 export const BODY_COLLISION = {
-  playerRadius: 24,
-  enemyRadius: 24,
+  playerRadius: actorPx(24),
+  enemyRadius: actorPx(24),
   /**
    * Bodies are ovals on the floor: as wide as their radius, `depthRatio` times as deep.
    * Two 24px bodies keep 48px apart side by side and about 29px apart in depth.

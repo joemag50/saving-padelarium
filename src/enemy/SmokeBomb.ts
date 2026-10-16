@@ -54,7 +54,7 @@ export class SmokeBomb implements EncounterActor {
 
   /** Not hittable: players can't punch smoke. */
   get hurtbox(): HitboxRect {
-    return createCenteredHitbox(-10_000, -10_000, 0, 0);
+    return createCenteredHitbox(-10_000, -10_000, 0, 0, -10_000);
   }
 
   getBodySnapshot() {

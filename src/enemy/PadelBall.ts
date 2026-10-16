@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COMBAT_TEAM } from '../combat/damageRules';
 import { Combatant } from '../combat/Combatant';
 import { createCenteredHitbox } from '../combat/overlap';
+import { actorPx } from '../config/constants';
 import type { EncounterActor } from '../core/EncounterManager';
 import type { Player } from '../player/Player';
 import type { HitboxRect, HitInfo } from '../types/combat';
@@ -15,7 +16,7 @@ type BallTarget = {
 };
 
 /** Ball height above the floor, so it reads as flying at chest level. */
-const FLIGHT_HEIGHT = 44;
+const FLIGHT_HEIGHT = actorPx(44);
 /** How close (feet to feet) the ball must pass to hit a player. */
 const HIT_REACH = { x: 30, y: 30 };
 
@@ -69,7 +70,7 @@ export class PadelBall implements EncounterActor {
 
   /** Sits around the flying ball so a normal swing at the same depth catches it. */
   get hurtbox(): HitboxRect {
-    return createCenteredHitbox(this.container.x, this.container.y - 36, 52, 64);
+    return createCenteredHitbox(this.container.x, this.container.y - actorPx(36), actorPx(52), actorPx(64), this.container.y);
   }
 
   getBodySnapshot() {

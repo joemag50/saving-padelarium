@@ -14,15 +14,17 @@ export function hitboxesOverlap(
   target: HitboxRect,
   depthTolerance: number,
 ): boolean {
-  if (Math.abs(attacker.y - target.y) > depthTolerance) {
+  // Compare feet, not box centers: a punch at shoulder height and a body-tall hurtbox have
+  // centers far apart even when both fighters stand on the same line.
+  if (Math.abs(attacker.floorY - target.floorY) > depthTolerance) {
     return false;
   }
 
   return Phaser.Geom.Rectangle.Overlaps(toPhaserRect(attacker), toPhaserRect(target));
 }
 
-export function createCenteredHitbox(x: number, y: number, width: number, height: number): HitboxRect {
-  return { x, y, width, height };
+export function createCenteredHitbox(x: number, y: number, width: number, height: number, floorY: number): HitboxRect {
+  return { x, y, width, height, floorY };
 }
 
 export function drawHitboxOutline(

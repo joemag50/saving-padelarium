@@ -1,0 +1,26 @@
+{
+  "id": "jose",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 180,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Casual2_Body",
+    "legs": "Casual_Legs",
+    "feet": "Casual2_Feet"
+  },
+  "colors": {
+    "Skin": "#a8714a",
+    "Skin_Darker": "#8c5a38",
+    "Hair": "#141414",
+    "Eyebrows": "#141414",
+    "LightBrown": "#1c2a4a",
+    "Purple": "#1c2a4a",
+    "LightBlue": "#1c2a4a",
+    "Red_Dark": "#d42a2a",
+    "White": "#f2f2f2"
+  },
+  "cap": {
+    "color": "#f4f4f4",
+    "backwards": true
+  }
+}

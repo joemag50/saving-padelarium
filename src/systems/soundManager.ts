@@ -35,6 +35,25 @@ class SoundManager {
     ]);
   }
 
+  /** Everyone is down: a sad slide down. */
+  playKnockout() {
+    this.playSequence([
+      { f: 330, d: 0.16, t: 'triangle' as OscillatorType, g: 0.06 },
+      { f: 247, d: 0.16, t: 'triangle' as OscillatorType, g: 0.06 },
+      { f: 165, d: 0.32, t: 'triangle' as OscillatorType, g: 0.06 },
+    ]);
+  }
+
+  /** Beaming back in: a quick shimmer up. */
+  playRespawn() {
+    this.playSequence([
+      { f: 520, d: 0.06, t: 'sine' as OscillatorType, g: 0.05 },
+      { f: 660, d: 0.06, t: 'sine' as OscillatorType, g: 0.05 },
+      { f: 880, d: 0.06, t: 'sine' as OscillatorType, g: 0.05 },
+      { f: 1175, d: 0.16, t: 'sine' as OscillatorType, g: 0.04 },
+    ]);
+  }
+
   playEncounterStart() {
     this.playTone(180, 0.15, 'triangle', 0.05);
   }

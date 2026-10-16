@@ -1,3 +1,6 @@
+import { ACTOR_SCALE, actorPx } from '../config/constants';
+import type { RosterCharacterId } from '../data/roster';
+
 export const HERO_ASSET_BASE = './assets/individual_sheets';
 
 export const HERO_FRAME = {
@@ -21,6 +24,82 @@ export const HERO_ANIMS = {
   fall: 'hero-fall',
 } as const;
 
+export type HeroAnimName = keyof typeof HERO_ANIMS | 'dodge' | 'hurt';
+
+/**
+ * Friends with their own sprites, rendered in Blender from `art/characters/<id>.json`
+ * (see `art/blender/build_character.py`). Everyone else uses the tinted template above.
+ */
+const CHARACTER_SPRITE_IDS = ['jose'] as const satisfies readonly RosterCharacterId[];
+type SpriteCharacterId = (typeof CHARACTER_SPRITE_IDS)[number];
+
+const CHARACTER_FRAME = 256;
+/** Frames per strip and playback; must match the Blender render (art/characters/<id>.frames.json). */
+type CharacterAnim = {
+  frames: number;
+  frameRate: number;
+  repeat: number;
+  /** Frames to play, in order (repeats hold a pose). Default: every frame once. */
+  sequence?: number[];
+  /** Wider frames for poses that leave the square (lying down); same height and center. */
+  frameWidth?: number;
+};
+
+const CHARACTER_ANIMS: Record<HeroAnimName, CharacterAnim> = {
+  idle: { frames: 8, frameRate: 8, repeat: -1 },
+  // Feet match the ground at PLAYER.moveSpeed (270 px/s): a walk cycle covers ~168 px on screen
+  // and a run cycle ~200 px, so they loop every ~0.62 s and ~0.74 s.
+  walk: { frames: 8, frameRate: 13, repeat: -1 },
+  run: { frames: 8, frameRate: 11, repeat: -1 },
+  // 11 steps at ~32 fps ≈ COMBAT.attackDurationMs (340 ms): a trimmed windup (0-7), the arm held
+  // out on impact (8-9, when the hit lands) and the way back (10-12).
+  attack: { frames: 13, frameRate: 32, repeat: 0, sequence: [0, 3, 5, 7, 8, 8, 9, 9, 10, 11, 12] },
+  hurt: { frames: 4, frameRate: 16, repeat: 0 },
+  // The whole roll fits in one dodge (COMBAT.dodgeDurationMs = 420 ms).
+  dodge: { frames: 8, frameRate: 19, repeat: 0 },
+  fall: { frames: 8, frameRate: 12, repeat: 0, frameWidth: 384 },
+};
+
+/** How a hero's sprite sits in its container (feet at y = 0). */
+export type HeroLook = {
+  /** null: the shared template, tinted with the character's color. */
+  characterId: SpriteCharacterId | null;
+  scale: number;
+  spriteY: number;
+  /** Where the name tag goes, above the head. */
+  labelY: number;
+};
+
+const TEMPLATE_LOOK: HeroLook = {
+  characterId: null,
+  scale: 2.25 * ACTOR_SCALE,
+  spriteY: actorPx(110),
+  labelY: actorPx(-58),
+};
+/** Rendered friends: ~165 px tall on screen (167 px in the frame, 14 px under the feet). */
+const CHARACTER_SCALE = 0.66 * ACTOR_SCALE;
+const CHARACTER_LOOK = { scale: CHARACTER_SCALE, spriteY: 14 * CHARACTER_SCALE + 2, labelY: -Math.round(167 * CHARACTER_SCALE) - 14 } as const;
+
+function hasOwnSprites(id: RosterCharacterId): id is SpriteCharacterId {
+  return (CHARACTER_SPRITE_IDS as readonly string[]).includes(id);
+}
+
+export function getHeroLook(id: RosterCharacterId): HeroLook {
+  return hasOwnSprites(id) ? { characterId: id, ...CHARACTER_LOOK } : TEMPLATE_LOOK;
+}
+
+/** Animation key for this look; template looks have no dodge/hurt and fall back. */
+export function heroAnimKey(look: HeroLook, anim: HeroAnimName) {
+  if (look.characterId) return `${look.characterId}-${anim}`;
+  if (anim === 'dodge') return HERO_ANIMS.run;
+  if (anim === 'hurt') return HERO_ANIMS.idle;
+  return HERO_ANIMS[anim];
+}
+
+export function heroIdleTexture(look: HeroLook) {
+  return look.characterId ? `${look.characterId}-idle` : HERO_TEXTURES.idle;
+}
+
 export function preloadHeroAssets(scene: Phaser.Scene) {
   const base = HERO_ASSET_BASE;
   const frame = HERO_FRAME;
@@ -30,6 +109,15 @@ export function preloadHeroAssets(scene: Phaser.Scene) {
   scene.load.spritesheet(HERO_TEXTURES.run, `${base}/male_hero_template-run.png`, frame);
   scene.load.spritesheet(HERO_TEXTURES.attack, `${base}/male_hero_template-combo_1.png`, frame);
   scene.load.spritesheet(HERO_TEXTURES.fall, `${base}/male_hero_template-fall.png`, frame);
+
+  for (const id of CHARACTER_SPRITE_IDS) {
+    for (const [anim, spec] of Object.entries(CHARACTER_ANIMS)) {
+      scene.load.spritesheet(`${id}-${anim}`, `./assets/characters/${id}/${anim}.png`, {
+        frameWidth: spec.frameWidth ?? CHARACTER_FRAME,
+        frameHeight: CHARACTER_FRAME,
+      });
+    }
+  }
 }
 
 export function createHeroAnimations(scene: Phaser.Scene) {
@@ -59,7 +147,8 @@ export function createHeroAnimations(scene: Phaser.Scene) {
   scene.anims.create({
     key: HERO_ANIMS.attack,
     frames: scene.anims.generateFrameNumbers(HERO_TEXTURES.attack, { start: 0, end: 2 }),
-    frameRate: 14,
+    // Spread over the whole attack (COMBAT.attackDurationMs).
+    frameRate: 9,
     repeat: 0,
   });
 
@@ -69,9 +158,19 @@ export function createHeroAnimations(scene: Phaser.Scene) {
     frameRate: 10,
     repeat: 0,
   });
-}
 
-export const HERO_DISPLAY = {
-  scale: 2.25,
-  footY: 110,
-} as const;
+  for (const id of CHARACTER_SPRITE_IDS) {
+    for (const [anim, spec] of Object.entries(CHARACTER_ANIMS)) {
+      const key = `${id}-${anim}`;
+      scene.anims.create({
+        key,
+        frames: scene.anims.generateFrameNumbers(
+          key,
+          spec.sequence ? { frames: spec.sequence } : { start: 0, end: spec.frames - 1 },
+        ),
+        frameRate: spec.frameRate,
+        repeat: spec.repeat,
+      });
+    }
+  }
+}

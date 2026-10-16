@@ -2,10 +2,12 @@
  * Tuning for the final boss, "Supremo Galáctico". Every number of the fight lives here.
  * `solo` values replace the base ones when playing alone, so the fight stays fair for one player.
  */
+import { actorPx } from './constants';
+
 export const FINAL_BOSS = {
   label: 'Supremo Galáctico',
   maxHealth: 360,
-  body: { width: 84, height: 124, radius: 40 },
+  body: { width: actorPx(84), height: actorPx(124), radius: actorPx(40) },
   color: 0x4338ca,
   /** Health fractions where phase 2 (charge) and phase 3 (abduction) begin. */
   phase2At: 0.66,
@@ -17,7 +19,7 @@ export const FINAL_BOSS = {
   pairHitBonusDamage: 20,
 
   /** Close-range racket swipe, used in every phase when a player gets too close. */
-  swipe: { range: 110, windupMs: 520, damage: 16, cooldownMs: 1600, windupMsPhase3: 380 },
+  swipe: { range: actorPx(110), windupMs: 520, damage: 16, cooldownMs: 1600, windupMsPhase3: 380 },
 
   serve: {
     aimMs: 850,
@@ -46,7 +48,7 @@ export const FINAL_BOSS = {
     everyMs: 3600,
     telegraphMs: 1000,
     activeMs: 4200,
-    radius: 56,
+    radius: actorPx(56),
     followSpeed: 70,
     /** Hits a partner needs to break the beam holding someone. */
     beamHealth: 3,

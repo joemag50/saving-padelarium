@@ -30,7 +30,7 @@ export class PairSpecial {
     this.flashUntil = 0;
 
     // Centered at chest height (origin is the players' feet), like a normal swing.
-    const hitbox = createCenteredHitbox(originX, originY - PLAYER.bodyHeight / 2, COMBAT.specialRadius * 2, COMBAT.specialRadius);
+    const hitbox = createCenteredHitbox(originX, originY - PLAYER.bodyHeight / 2, COMBAT.specialRadius * 2, COMBAT.specialRadius, originY);
     let hits = 0;
 
     for (const target of targets) {

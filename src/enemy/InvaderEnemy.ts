@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COMBAT } from '../config/combat';
+import { actorPx } from '../config/constants';
 import { DEBUG_HITBOXES } from '../config/debug';
 import { ATTACKS_PER_TURN, ENEMY_KINDS, WAIT_DISTANCE, type EnemyKind, type EnemyProfile, type EnemyStats } from '../config/enemies';
 import { COMBAT_TEAM } from '../combat/damageRules';
@@ -20,7 +21,7 @@ type AiState = 'move' | 'windup' | 'dash' | 'recover' | 'aim' | 'stagger';
 /** The container origin is at the feet, like the players', so same-depth bodies line up. */
 const FEET_OFFSET = 0;
 /** Matches the player hurtbox center (feet minus half the body) so same-depth attacks connect. */
-const HIT_HEIGHT = 36;
+const HIT_HEIGHT = actorPx(36);
 /** How close (px) counts as "arrived" at an attack slot. */
 const SLOT_TOLERANCE = { x: 14, y: 10 };
 /** A slot holder that can't land an attack for this long gives its slot away. */
@@ -160,6 +161,7 @@ export class InvaderEnemy implements EncounterActor {
       this.container.y - this.profile.body.height / 2,
       this.profile.body.width + COMBAT.hurtboxPadding,
       this.profile.body.height + COMBAT.hurtboxPadding,
+      this.container.y,
     );
   }
 
@@ -387,7 +389,8 @@ export class InvaderEnemy implements EncounterActor {
       this.container.x + this.facing * (reach / 2 + 5),
       this.container.y - HIT_HEIGHT,
       reach + 10,
-      40,
+      actorPx(40),
+      this.container.y,
     );
   }
 
