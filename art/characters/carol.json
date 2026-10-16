@@ -1,0 +1,15 @@
+{
+  "id": "carol",
+  "source": "Quaternius_Modular_Women.blend",
+  "heightCm": 160,
+  "parts": { "head": "Casual_Head", "body": "Casual_Body", "legs": "Formal_Legs", "feet": "Casual_Feet" },
+  "colors": {
+    "Skin": "#a8714a",
+    "Hair_Brown": "#2a1a12",
+    "Hair_Blond": "#2a1a12",
+    "Brown": "#2a1a12",
+    "White": "#161616",
+    "LimeGreen": "#161616",
+    "Grey": "#b48cf0"
+  }
+}

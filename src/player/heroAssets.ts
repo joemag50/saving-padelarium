@@ -30,8 +30,13 @@ export type HeroAnimName = keyof typeof HERO_ANIMS | 'dodge' | 'hurt';
  * Friends with their own sprites, rendered in Blender from `art/characters/<id>.json`
  * (see `art/blender/build_character.py`). Everyone else uses the tinted template above.
  */
-const CHARACTER_SPRITE_IDS = ['jose'] as const satisfies readonly RosterCharacterId[];
-type SpriteCharacterId = (typeof CHARACTER_SPRITE_IDS)[number];
+/** Each friend's standing height in their frame (px), from their real height; places the name tag. */
+const CHARACTER_HEIGHTS = {
+  jose: 167,
+  carol: 148,
+} as const satisfies Partial<Record<RosterCharacterId, number>>;
+type SpriteCharacterId = keyof typeof CHARACTER_HEIGHTS;
+const CHARACTER_SPRITE_IDS = Object.keys(CHARACTER_HEIGHTS) as SpriteCharacterId[];
 
 const CHARACTER_FRAME = 256;
 /** Frames per strip and playback; must match the Blender render (art/characters/<id>.frames.json). */
@@ -76,16 +81,22 @@ const TEMPLATE_LOOK: HeroLook = {
   spriteY: actorPx(110),
   labelY: actorPx(-58),
 };
-/** Rendered friends: ~165 px tall on screen (167 px in the frame, 14 px under the feet). */
+/** Rendered friends: a 180 cm friend is ~165 px tall on screen (167 px in the frame, 14 px under the feet). */
 const CHARACTER_SCALE = 0.66 * ACTOR_SCALE;
-const CHARACTER_LOOK = { scale: CHARACTER_SCALE, spriteY: 14 * CHARACTER_SCALE + 2, labelY: -Math.round(167 * CHARACTER_SCALE) - 14 } as const;
+const CHARACTER_FEET_MARGIN = 14;
 
 function hasOwnSprites(id: RosterCharacterId): id is SpriteCharacterId {
   return (CHARACTER_SPRITE_IDS as readonly string[]).includes(id);
 }
 
 export function getHeroLook(id: RosterCharacterId): HeroLook {
-  return hasOwnSprites(id) ? { characterId: id, ...CHARACTER_LOOK } : TEMPLATE_LOOK;
+  if (!hasOwnSprites(id)) return TEMPLATE_LOOK;
+  return {
+    characterId: id,
+    scale: CHARACTER_SCALE,
+    spriteY: CHARACTER_FEET_MARGIN * CHARACTER_SCALE + 2,
+    labelY: -Math.round(CHARACTER_HEIGHTS[id] * CHARACTER_SCALE) - 22,
+  };
 }
 
 /** Animation key for this look; template looks have no dodge/hurt and fall back. */
