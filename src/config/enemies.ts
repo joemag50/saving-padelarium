@@ -43,8 +43,6 @@ function body(width: number, height: number) {
   return { width: actorPx(width), height: actorPx(height) };
 }
 
-const BODY = body(48, 72);
-
 export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
   /** The basic one: walks up and punches. */
   invasor: {
@@ -53,7 +51,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'melee',
     maxHealth: 30,
     moveSpeed: 150,
-    // Matches its sprite: a ~165 px tall costumed person.
+    // Bodies match their sprites (a ~165 px tall costumed person for the invader).
     body: body(34, 110),
     attackDamage: 8,
     reach: actorPx(60),
@@ -69,7 +67,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'dasher',
     maxHealth: 20,
     moveSpeed: 235,
-    body: body(40, 64),
+    body: body(30, 104),
     attackDamage: 7,
     reach: 230,
     attackWindupMs: 380,
@@ -85,7 +83,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'melee',
     maxHealth: 90,
     moveSpeed: 85,
-    body: body(64, 96),
+    body: body(52, 128),
     attackDamage: 18,
     reach: actorPx(78),
     attackWindupMs: 750,
@@ -100,7 +98,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'ranged',
     maxHealth: 24,
     moveSpeed: 130,
-    body: BODY,
+    body: body(34, 110),
     attackDamage: 10,
     reach: 360,
     attackWindupMs: 750,
@@ -116,7 +114,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'melee',
     maxHealth: 30,
     moveSpeed: 115,
-    body: BODY,
+    body: body(40, 110),
     attackDamage: 10,
     reach: actorPx(62),
     attackWindupMs: 520,
@@ -132,7 +130,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'zone',
     maxHealth: 28,
     moveSpeed: 120,
-    body: BODY,
+    body: body(34, 108),
     attackDamage: 6,
     reach: 300,
     attackWindupMs: 500,
@@ -148,7 +146,7 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'melee',
     maxHealth: 120,
     moveSpeed: 115,
-    body: body(56, 88),
+    body: body(38, 122),
     attackDamage: 15,
     reach: actorPx(66),
     attackWindupMs: 600,

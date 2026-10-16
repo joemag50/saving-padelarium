@@ -6,7 +6,7 @@ import { ATTACKS_PER_TURN, ENEMY_KINDS, WAIT_DISTANCE, type EnemyKind, type Enem
 import { COMBAT_TEAM } from '../combat/damageRules';
 import { MASK_REVEAL_FROM_LEVEL } from '../data/levels';
 import { getCurrentLevel } from '../systems/session';
-import { hasEnemySprites } from './enemyAssets';
+import { enemySpriteId } from './enemyAssets';
 import { BlockEnemyLook, SpriteEnemyLook, type EnemyLook } from './enemyLook';
 import { Combatant } from '../combat/Combatant';
 import { createCenteredHitbox, drawHitboxOutline, hitboxesOverlap } from '../combat/overlap';
@@ -24,8 +24,8 @@ type AiState = 'move' | 'windup' | 'dash' | 'recover' | 'aim' | 'stagger';
 
 /** The container origin is at the feet, like the players', so same-depth bodies line up. */
 const FEET_OFFSET = 0;
-/** Matches the player hurtbox center (feet minus half the body) so same-depth attacks connect. */
-const HIT_HEIGHT = actorPx(36);
+/** The punch lands at fist height: this fraction of the enemy's body above its feet. */
+const FIST_HEIGHT = 0.68;
 /** How close (px) counts as "arrived" at an attack slot. */
 const SLOT_TOLERANCE = { x: 14, y: 10 };
 /** A slot holder that can't land an attack for this long gives its slot away. */
@@ -55,6 +55,7 @@ export class InvaderEnemy implements EncounterActor {
   private readonly context: EnemyContext;
   private readonly profile: EnemyProfile;
   private readonly look: EnemyLook;
+  private readonly hasSprites: boolean;
   /** Last position, to tell walking from standing for the animation. */
   private lastX = 0;
   private lastY = 0;
@@ -115,14 +116,17 @@ export class InvaderEnemy implements EncounterActor {
     this.container = scene.add.container(x, y);
     this.lastX = x;
     this.lastY = y;
-    this.look = hasEnemySprites(kind)
-      ? new SpriteEnemyLook(scene, kind, this.container)
+    const spriteId = enemySpriteId(kind, getCurrentLevel(scene.registry).id);
+    this.hasSprites = spriteId !== null;
+    this.look = spriteId
+      ? new SpriteEnemyLook(scene, spriteId, this.container)
       : new BlockEnemyLook(scene, width, height, this.profile.color, isLeader);
     this.label = scene.add
       .text(0, FEET_OFFSET + this.look.labelY, this.profile.label, textStyle(isLeader ? 'bodySmall' : 'label', { color: '#ffffff' }))
       .setOrigin(0.5);
     this.container.add([this.look.object, this.label]);
-    if (this.profile.shield) {
+    // Sprites carry their shield in the art; blocks get a bar on the shielded side.
+    if (this.profile.shield && !this.hasSprites) {
       this.shield = scene.add.rectangle(0, FEET_OFFSET - height / 2, 8, height + 6, 0x93c5fd, 0.9);
       this.container.add(this.shield);
     }
@@ -208,6 +212,7 @@ export class InvaderEnemy implements EncounterActor {
     if (this.profile.shield && info.kind === 'melee') {
       const fromSide = Math.sign(info.attackerX - this.container.x);
       if (fromSide === this.facing) {
+        this.look.block();
         this.popup('¡BLOQUEADO!', now);
         return false;
       }
@@ -257,7 +262,7 @@ export class InvaderEnemy implements EncounterActor {
     this.telegraph?.clear();
     this.hitboxDebug?.clear();
     this.shield?.setVisible(false);
-    const sprite = hasEnemySprites(this.kind);
+    const sprite = this.hasSprites;
     // From mid-story on, costumes come off when they go down (see MASK_REVEAL_FROM_LEVEL).
     this.look.defeat(getCurrentLevel(this.scene.registry).id >= MASK_REVEAL_FROM_LEVEL);
     if (sprite) {
@@ -402,9 +407,9 @@ export class InvaderEnemy implements EncounterActor {
     const reach = this.profile.reach;
     return createCenteredHitbox(
       this.container.x + this.facing * (reach / 2 + 5),
-      this.container.y - HIT_HEIGHT,
+      this.container.y - this.profile.body.height * FIST_HEIGHT,
       reach + 10,
-      actorPx(40),
+      actorPx(48),
       this.container.y,
     );
   }
@@ -450,6 +455,7 @@ export class InvaderEnemy implements EncounterActor {
   }
 
   private fire(now: number, target: Player) {
+    this.look.strike();
     if (this.profile.role === 'ranged' && this.profile.ranged) {
       this.context.addActor(
         new PadelBall(
@@ -486,7 +492,9 @@ export class InvaderEnemy implements EncounterActor {
   // --- Shared helpers ---------------------------------------------------------------------------
 
   private enter(state: AiState, now: number, durationMs: number) {
-    if (state === 'windup') this.look.windup(durationMs);
+    if (state === 'windup' || state === 'aim') this.look.windup(durationMs);
+    if (state === 'dash') this.look.dash(true);
+    else if (this.state === 'dash') this.look.dash(false);
     this.state = state;
     this.stateStartedAt = now;
     this.stateDurationMs = durationMs;

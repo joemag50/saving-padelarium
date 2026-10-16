@@ -1,6 +1,5 @@
 {
   "id": "lider-4",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 190,
   "animations": [
@@ -13,7 +12,7 @@
     "fall"
   ],
   "wideFrames": {
-    "fall": 448
+    "fall": 576
   },
   "parts": {
     "head": "Casual2_Head",
@@ -35,22 +34,17 @@
   "alienMask": {
     "color": "#ca8a04",
     "eyeColor": "#0b0b12",
-    "glowColor": "#fde047"
-  },
-  "extras": [
-    {
-      "type": "shoulderPads",
-      "color": "#fde047"
-    },
-    {
-      "type": "hardHat",
+    "glowColor": "#fde047",
+    "hardHat": {
       "color": "#facc15",
       "antennae": true
     },
-    {
-      "type": "hazardStripes",
-      "color": "#111827"
-    }
-  ],
-  "notes": "Sargento Grúa (nivel 4). Casco de obra con antenas y franjas de advertencia (estacionamiento del nivel 4). Sin 'hurt' (super armadura)."
+    "size": 0.85
+  },
+  "shoulderPads": {
+    "color": "#fde047"
+  },
+  "hazardStripes": {
+    "color": "#111827"
+  }
 }

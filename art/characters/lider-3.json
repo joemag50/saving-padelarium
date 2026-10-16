@@ -1,6 +1,5 @@
 {
   "id": "lider-3",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 190,
   "animations": [
@@ -13,7 +12,7 @@
     "fall"
   ],
   "wideFrames": {
-    "fall": 448
+    "fall": 576
   },
   "parts": {
     "head": "Casual2_Head",
@@ -35,22 +34,17 @@
   "alienMask": {
     "color": "#7c3aed",
     "eyeColor": "#0b0b12",
-    "glowColor": "#fde047"
-  },
-  "extras": [
-    {
-      "type": "cape",
-      "color": "#5b21b6"
-    },
-    {
-      "type": "shoulderPads",
-      "color": "#c4b5fd"
-    },
-    {
-      "type": "headphones",
+    "glowColor": "#fde047",
+    "headphones": {
       "color": "#111827",
       "accent": "#f0abfc"
-    }
-  ],
-  "notes": "Capitana Decibel (nivel 3). Audífonos gigantes (el zumbido del nivel 3). Sin 'hurt' (super armadura)."
+    },
+    "size": 0.85
+  },
+  "cape": {
+    "color": "#5b21b6"
+  },
+  "shoulderPads": {
+    "color": "#c4b5fd"
+  }
 }

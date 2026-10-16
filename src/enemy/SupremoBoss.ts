@@ -14,6 +14,7 @@ import { textStyle } from '../ui/theme';
 import { applyDepthSort } from '../world/depthSort';
 import { clampToWalkLane, getWalkLaneForX } from '../world/walkLane';
 import { AbductionBeam } from './AbductionBeam';
+import { BOSS_MASK_TEXTURE, BOSS_SPRITE, ENEMY_FEET_MARGIN, ENEMY_SPRITE_SCALE, bossAnimKey, type BossAnim } from './enemyAssets';
 import { PadelBall } from './PadelBall';
 
 type Phase = 1 | 2 | 3;
@@ -34,10 +35,8 @@ type BossState =
   | 'defeated';
 
 const COLORS = {
-  body: FINAL_BOSS.color,
-  windup: 0xffffff,
-  stunned: 0x818cf8,
-  exhausted: 0x64748b,
+  windup: 0xfff7c2,
+  exhausted: 0x94a3b8,
   shield: 0x93c5fd,
   serveLane: 0xef4444,
   chargeLane: 0xfbbf24,
@@ -52,6 +51,8 @@ const HINTS = {
 } as const;
 
 const INTRO_MS = 1200;
+/** Holds the racket swing this long before walking or idling again (ms). */
+const STRIKE_HOLD_MS = 400;
 /** Throttle for the "¡BLOQUEADO!" pop-up so a flurry of hits doesn't spam it. */
 const BLOCK_POPUP_MS = 400;
 
@@ -67,7 +68,7 @@ export class SupremoBoss implements EncounterActor {
   readonly combatant: Combatant;
   private readonly scene: Phaser.Scene;
   private readonly container: Phaser.GameObjects.Container;
-  private readonly body: Phaser.GameObjects.Rectangle;
+  private readonly sprite: Phaser.GameObjects.Sprite;
   private readonly shield: Phaser.GameObjects.Rectangle;
   private readonly label: Phaser.GameObjects.Text;
   private readonly status: Phaser.GameObjects.Text;
@@ -93,6 +94,11 @@ export class SupremoBoss implements EncounterActor {
   private stateAfterSwipe: BossState = 'serveRest';
   private lastHit: { index: number; at: number } | null = null;
   private lastBlockPopupAt = 0;
+  /** Last position, to tell walking from standing for the animation. */
+  private lastX = 0;
+  private lastY = 0;
+  private holdUntil = 0;
+  private flashUntil = 0;
   private readonly context: BossContext;
   private readonly onDefeated: () => void;
 
@@ -100,19 +106,28 @@ export class SupremoBoss implements EncounterActor {
     this.context = context;
     this.onDefeated = onDefeated;
     this.scene = context.scene;
-    const { width, height } = FINAL_BOSS.body;
+    const { height } = FINAL_BOSS.body;
 
     this.container = this.scene.add.container(x, y);
+    this.lastX = x;
+    this.lastY = y;
     // The container origin is at the feet, like the players'.
-    this.body = this.scene.add.rectangle(0, -height / 2, width, height, COLORS.body).setStrokeStyle(3, 0xffffff, 0.5);
-    this.shield = this.scene.add.rectangle(0, -height / 2, 12, height + 10, COLORS.shield, 0.85).setVisible(false);
+    this.sprite = this.scene.add
+      .sprite(0, ENEMY_FEET_MARGIN * ENEMY_SPRITE_SCALE + 2, `${BOSS_SPRITE.id}-idle-strip`)
+      .setOrigin(0.5, 1)
+      .setScale(ENEMY_SPRITE_SCALE)
+      .setFlipX(true);
+    this.play('raise');
+    // Phase 2's energy shield, on the side he faces.
+    this.shield = this.scene.add.rectangle(0, -height / 2, 12, height + 10, COLORS.shield, 0.6).setVisible(false);
+    const top = -Math.round(BOSS_SPRITE.height * ENEMY_SPRITE_SCALE);
     this.label = this.scene.add
-      .text(0, -height - 22, FINAL_BOSS.label, textStyle('bodySmall', { color: '#ffffff' }))
+      .text(0, top - 16, FINAL_BOSS.label, textStyle('bodySmall', { color: '#ffffff' }))
       .setOrigin(0.5);
     this.status = this.scene.add
-      .text(0, -height - 48, '', textStyle('label', { color: '#fde047' }))
+      .text(0, top - 42, '', textStyle('label', { color: '#fde047' }))
       .setOrigin(0.5);
-    this.container.add([this.body, this.shield, this.label, this.status]);
+    this.container.add([this.sprite, this.shield, this.label, this.status]);
     applyDepthSort(this.container, y);
 
     this.telegraph = this.scene.add.graphics();
@@ -183,9 +198,9 @@ export class SupremoBoss implements EncounterActor {
         if (this.elapsed(now) >= this.stateDurationMs) this.startPhase(1, now);
         break;
       case 'transition':
-        this.body.setAlpha(Math.floor(this.elapsed(now) / 100) % 2 === 0 ? 1 : 0.4);
+        this.sprite.setAlpha(Math.floor(this.elapsed(now) / 100) % 2 === 0 ? 1 : 0.4);
         if (this.elapsed(now) >= this.stateDurationMs) {
-          this.body.setAlpha(1);
+          this.sprite.setAlpha(1);
           this.startPhase(this.phase, now);
         }
         break;
@@ -212,7 +227,7 @@ export class SupremoBoss implements EncounterActor {
         break;
       case 'chargeTelegraph':
         this.drawChargeLane(now);
-        this.body.setX(Math.sin(now / 25) * 3);
+        this.sprite.setX(Math.sin(now / 25) * 3);
         if (this.elapsed(now) >= this.stateDurationMs) {
           this.chargeHitPlayers.clear();
           this.enter('charging', now, 0);
@@ -237,7 +252,7 @@ export class SupremoBoss implements EncounterActor {
         break;
     }
 
-    this.updateVisuals();
+    this.updateVisuals(now, deltaSeconds);
     this.drawDebug();
   }
 
@@ -282,11 +297,7 @@ export class SupremoBoss implements EncounterActor {
 
   onHit(now: number) {
     if (!this.isActive) return;
-    this.body.setFillStyle(0xffffff);
-    this.scene.time.delayedCall(70, () => {
-      if (this.isActive) this.updateVisuals();
-    });
-    void now;
+    this.flashUntil = now + 70;
   }
 
   /** A returned serve reached him: stunned, and it hurts. */
@@ -358,10 +369,13 @@ export class SupremoBoss implements EncounterActor {
     this.context.hooks.setHint('');
     this.context.hooks.onBossFightEnd();
     this.state = 'defeated';
-    this.label.setText('Ing. Galán');
+    // The reveal: the costume head flies off and it's Galán underneath.
+    this.label.setText('Ing. Galán').setY(-actorPx(60));
     this.status.setText('');
     this.shield.setVisible(false);
-    this.body.setFillStyle(COLORS.exhausted, 0.6).setScale(1, 0.7);
+    this.sprite.clearTint().setAlpha(1).setX(0);
+    this.play('fall-unmasked');
+    this.tossMask();
     this.telegraph.clear();
     soundManager.playSpecial();
     this.scene.cameras.main.shake(400, 0.01);
@@ -383,7 +397,9 @@ export class SupremoBoss implements EncounterActor {
   private updateServeAim(now: number, deltaSeconds: number, living: Player[]) {
     this.facing = -1;
     this.walkToward(this.container.x, this.serveLaneY, 200, deltaSeconds);
-    this.drawServeLane(now);
+    // The warning is drawn where the ball will fly: his own depth, even if he hasn't reached
+    // the target's lane yet.
+    this.drawServeLane(now, this.container.y);
     if (this.elapsed(now) < this.stateDurationMs) return;
 
     const { serve } = FINAL_BOSS;
@@ -401,10 +417,13 @@ export class SupremoBoss implements EncounterActor {
     );
     soundManager.playEncounterStart();
     this.ballsServed += 1;
+    this.strike(now);
 
     if (this.ballsServed < serve.ballsPerVolley) {
       this.aimAt(Phaser.Utils.Array.GetRandom(living), now);
       this.stateDurationMs = serve.gapMs;
+      // Swing through, then wind up again for the next ball in the gap that's left.
+      this.sprite.chain({ key: bossAnimKey('windup'), duration: Math.max(150, serve.gapMs - STRIKE_HOLD_MS) });
       return;
     }
 
@@ -440,6 +459,7 @@ export class SupremoBoss implements EncounterActor {
 
   private updateSwipe(now: number, living: Player[]) {
     if (this.elapsed(now) < this.stateDurationMs) return;
+    this.strike(now);
     const box = this.swipeHitbox();
     for (const player of living) {
       if (player.isInvulnerable(now)) continue;
@@ -452,7 +472,8 @@ export class SupremoBoss implements EncounterActor {
   }
 
   private swipeHitbox() {
-    return createCenteredHitbox(this.container.x + this.facing * actorPx(70), this.container.y - actorPx(36), FINAL_BOSS.swipe.range, actorPx(60), this.container.y);
+    // The racket sweeps at chest height, in front of him.
+    return createCenteredHitbox(this.container.x + this.facing * actorPx(70), this.container.y - actorPx(84), FINAL_BOSS.swipe.range, actorPx(70), this.container.y);
   }
 
   // --- Phase 2: charge ------------------------------------------------------------------------
@@ -537,6 +558,10 @@ export class SupremoBoss implements EncounterActor {
   }
 
   private enter(state: BossState, now: number, durationMs: number) {
+    // Racket swings wind up over the whole warning (the serve's own windup is chained after a swing).
+    if ((state === 'serveAim' && this.state !== 'serveAim') || state === 'swipeWindup') {
+      this.sprite.play({ key: bossAnimKey('windup'), duration: durationMs });
+    }
     this.state = state;
     this.stateStartedAt = now;
     this.stateDurationMs = durationMs;
@@ -569,15 +594,63 @@ export class SupremoBoss implements EncounterActor {
     );
   }
 
-  private updateVisuals() {
-    const color =
-      this.state === 'swipeWindup' ? COLORS.windup
-        : this.state === 'stunned' ? COLORS.stunned
-          : this.state === 'exhausted' ? COLORS.exhausted
-            : COLORS.body;
-    this.body.setFillStyle(color, this.state === 'swipeWindup' ? 0.6 : 1);
-    this.body.setScale(1, this.state === 'exhausted' ? 0.82 : 1);
-    if (this.state !== 'chargeTelegraph') this.body.setX(0);
+  private play(anim: BossAnim, frameRate?: number) {
+    const key = bossAnimKey(anim);
+    if (this.sprite.anims.currentAnim?.key === key && this.sprite.anims.isPlaying) return;
+    this.sprite.play(frameRate ? { key, frameRate } : key);
+  }
+
+  private strike(now: number) {
+    this.sprite.play(bossAnimKey('strike'));
+    this.holdUntil = now + STRIKE_HOLD_MS;
+  }
+
+  /** Which animation each state shows; swings and windups start where they happen. */
+  private updateVisuals(now: number, deltaSeconds: number) {
+    const traveled = Math.hypot(this.container.x - this.lastX, this.container.y - this.lastY);
+    this.lastX = this.container.x;
+    this.lastY = this.container.y;
+    this.sprite.setFlipX(this.facing === -1);
+    if (this.state !== 'chargeTelegraph') this.sprite.setX(0);
+
+    if (now < this.flashUntil) this.sprite.setTintFill(0xffffff);
+    else if (this.state === 'swipeWindup' && Math.floor(now / 90) % 2 === 0) this.sprite.setTintFill(COLORS.windup);
+    else if (this.state === 'exhausted') this.sprite.setTint(COLORS.exhausted);
+    else this.sprite.clearTint();
+
+    switch (this.state) {
+      case 'intro':
+      case 'transition':
+        this.play('raise');
+        break;
+      case 'chargeTelegraph':
+        // Stamping in place, ready to charge.
+        this.play('charge', 6);
+        break;
+      case 'charging':
+        this.play('charge', 20);
+        break;
+      case 'stunned':
+        this.play('stunned');
+        break;
+      case 'exhausted':
+        this.play('exhausted');
+        break;
+      case 'serveAim':
+      case 'swipeWindup':
+        break;
+      default: {
+        if (now < this.holdUntil) break;
+        if (traveled > 0.3) {
+          // Feet match the ground: one 8-frame cycle per walk cycle traveled.
+          const speed = deltaSeconds > 0 ? traveled / deltaSeconds : 0;
+          const frameRate = Phaser.Math.Clamp((8 * speed) / BOSS_SPRITE.walkCyclePx, 4, 14);
+          if (this.sprite.anims.currentAnim?.key !== bossAnimKey('walk')) this.play('walk', frameRate);
+        } else {
+          this.play('idle');
+        }
+      }
+    }
 
     const shieldUp = this.phase === 2 && !['stunned', 'transition', 'exhausted'].includes(this.state);
     this.shield.setVisible(shieldUp).setX(this.facing * (FINAL_BOSS.body.width / 2 + 8));
@@ -587,14 +660,36 @@ export class SupremoBoss implements EncounterActor {
     );
   }
 
-  private drawServeLane(now: number) {
+  /** The costume head pops off backward, spins and bounces on the floor (like the minions'). */
+  private tossMask() {
+    const { scene, container } = this;
+    const facing = this.facing;
+    const headY = container.y - Math.round(BOSS_SPRITE.height * ENEMY_SPRITE_SCALE) + 50;
+    const mask = scene.add
+      .image(container.x, headY, BOSS_MASK_TEXTURE)
+      .setScale(ENEMY_SPRITE_SCALE)
+      .setFlipX(facing === -1)
+      .setDepth(container.y + 1);
+    const landX = container.x - facing * Phaser.Math.Between(110, 150);
+    const floorY = container.y - 22;
+    scene.tweens.add({ targets: mask, x: landX, angle: -facing * 340, duration: 900, ease: 'Sine.easeOut' });
+    scene.tweens.chain({
+      targets: mask,
+      tweens: [
+        { y: headY - 110, duration: 340, ease: 'Quad.easeOut' },
+        { y: floorY, duration: 560, ease: 'Bounce.easeOut' },
+      ],
+    });
+  }
+
+  private drawServeLane(now: number, laneY: number) {
     const { minX } = this.context.arena;
     const alpha = Math.floor(now / 110) % 2 === 0 ? 0.55 : 0.2;
     const left = minX;
     const right = this.container.x - FINAL_BOSS.body.width / 2;
     this.telegraph.fillStyle(COLORS.serveLane, alpha);
-    this.telegraph.fillRect(left, this.serveLaneY - 5, right - left, 10);
-    this.telegraph.setDepth(this.serveLaneY - 30);
+    this.telegraph.fillRect(left, laneY - 5, right - left, 10);
+    this.telegraph.setDepth(laneY - 30);
   }
 
   private drawChargeLane(now: number) {

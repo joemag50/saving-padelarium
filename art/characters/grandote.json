@@ -1,6 +1,5 @@
 {
   "id": "grandote",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 200,
   "proportions": {
@@ -17,7 +16,7 @@
     "fall"
   ],
   "wideFrames": {
-    "fall": 448
+    "fall": 576
   },
   "parts": {
     "head": "Casual2_Head",
@@ -42,7 +41,9 @@
     "eyeColor": "#0b0b12",
     "glowColor": "#fde68a",
     "style": "cyclops",
-    "note": "Un solo ojo gigante al centro; sin antenas."
+    "size": 0.95
   },
-  "notes": "Disfraz inflable redondo de ~2 m; botas de trabajo. Sin 'hurt' (super armadura). Golpe pesado: misma animación de golpe, más lenta."
+  "belly": {
+    "color": "#ea580c"
+  }
 }

@@ -1,6 +1,5 @@
 {
   "id": "tirador",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 175,
   "animations": [
@@ -39,18 +38,13 @@
     "eyeColor": "#0b0b12",
     "glowColor": "#facc15"
   },
-  "extras": [
-    {
-      "type": "racket",
-      "hand": "R",
-      "color": "#111827",
-      "faceColor": "#facc15",
-      "note": "Raqueta de pádel en la mano derecha."
-    },
-    {
-      "type": "wristbands",
-      "color": "#ffffff"
-    }
-  ],
-  "notes": "Verde lima con blanco. 'serve' se parte en el juego en apuntar + saque (como el golpe del Invasor). 'hurt' también cuando le regresas la pelota."
+  "racket": {
+    "hand": "R",
+    "color": "#111827",
+    "faceColor": "#facc15",
+    "scale": 1.35
+  },
+  "wristbands": {
+    "color": "#ffffff"
+  }
 }

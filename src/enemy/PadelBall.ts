@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COMBAT_TEAM } from '../combat/damageRules';
 import { Combatant } from '../combat/Combatant';
 import { createCenteredHitbox } from '../combat/overlap';
+import { COMBAT } from '../config/combat';
 import { actorPx } from '../config/constants';
 import type { EncounterActor } from '../core/EncounterManager';
 import type { Player } from '../player/Player';
@@ -15,8 +16,8 @@ type BallTarget = {
   onBallReturned(now: number): void;
 };
 
-/** Ball height above the floor, so it reads as flying at chest level. */
-const FLIGHT_HEIGHT = actorPx(44);
+/** Ball height above the floor: chest level, where the players swing (COMBAT.hitboxHeightAboveFeet). */
+const FLIGHT_HEIGHT = actorPx(70);
 /** How close (feet to feet) the ball must pass to hit a player. */
 const HIT_REACH = { x: 30, y: 30 };
 
@@ -68,9 +69,9 @@ export class PadelBall implements EncounterActor {
     return this.alive;
   }
 
-  /** Sits around the flying ball so a normal swing at the same depth catches it. */
+  /** Around the flying ball (generous, it's fast) so a swing at the same depth catches it. */
   get hurtbox(): HitboxRect {
-    return createCenteredHitbox(this.container.x, this.container.y - actorPx(36), actorPx(52), actorPx(64), this.container.y);
+    return createCenteredHitbox(this.container.x, this.container.y - FLIGHT_HEIGHT, actorPx(60), actorPx(80), this.container.y);
   }
 
   getBodySnapshot() {
@@ -92,7 +93,8 @@ export class PadelBall implements EncounterActor {
     if (this.returned) {
       const feet = this.boss.position;
       const halfWidth = this.boss.hurtbox.width / 2;
-      if (Math.abs(this.container.x - feet.x) <= halfWidth && Math.abs(this.container.y - feet.y) <= 36) {
+      // Same depth tolerance as a punch: the shooter may have stepped off the lane meanwhile.
+      if (Math.abs(this.container.x - feet.x) <= halfWidth && Math.abs(this.container.y - feet.y) <= COMBAT.depthTolerance + 10) {
         this.boss.onBallReturned(now);
         this.destroy();
       }

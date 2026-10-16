@@ -1,6 +1,5 @@
 {
   "id": "lider-5",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 190,
   "animations": [
@@ -13,7 +12,7 @@
     "fall"
   ],
   "wideFrames": {
-    "fall": 448
+    "fall": 576
   },
   "parts": {
     "head": "Casual2_Head",
@@ -35,26 +34,20 @@
   "alienMask": {
     "color": "#dc2626",
     "eyeColor": "#0b0b12",
-    "glowColor": "#fde047"
+    "glowColor": "#fde047",
+    "size": 0.85
   },
-  "extras": [
-    {
-      "type": "cape",
-      "color": "#991b1b"
-    },
-    {
-      "type": "tie",
-      "color": "#111827"
-    },
-    {
-      "type": "briefcase",
-      "hand": "L",
-      "color": "#451a03"
-    },
-    {
-      "type": "giantPen",
-      "color": "#fbbf24"
-    }
-  ],
-  "notes": "Agente Firma (nivel 5). Corbata, portafolio y pluma gigante (la oficina y el contrato del nivel 5). Sin 'hurt' (super armadura)."
+  "cape": {
+    "color": "#991b1b"
+  },
+  "tie": {
+    "color": "#111827"
+  },
+  "briefcase": {
+    "hand": "L",
+    "color": "#451a03"
+  },
+  "giantPen": {
+    "color": "#fbbf24"
+  }
 }

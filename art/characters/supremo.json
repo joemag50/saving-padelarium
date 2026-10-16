@@ -1,6 +1,5 @@
 {
   "id": "supremo",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 210,
   "proportions": {
@@ -19,7 +18,8 @@
     "fall"
   ],
   "wideFrames": {
-    "fall": 512
+    "fall": 640,
+    "serve": 384
   },
   "parts": {
     "head": "Worker_Head",
@@ -44,21 +44,17 @@
     "eyeColor": "#0b0b12",
     "glowColor": "#fde047",
     "style": "emperor",
-    "note": "Cabeza grande con corona/antenas de emperador galáctico."
+    "size": 0.95
   },
-  "extras": [
-    {
-      "type": "cape",
-      "color": "#6d28d9",
-      "long": true
-    },
-    {
-      "type": "racket",
-      "hand": "R",
-      "scale": 1.6,
-      "color": "#fbbf24",
-      "faceColor": "#4c1d95"
-    }
-  ],
-  "notes": "Jefe final. Disfraz 'de foami' exagerado. Debajo: el Ingeniero Galán (cabeza con bigote y casco de obra del paquete). Al derrotarlo SIEMPRE se le cae la máscara (solo usa 'fall-unmasked'). 'serve' también sirve para el raquetazo cercano."
+  "cape": {
+    "color": "#6d28d9",
+    "long": true
+  },
+  "racket": {
+    "hand": "R",
+    "scale": 1.6,
+    "color": "#fbbf24",
+    "faceColor": "#4c1d95"
+  },
+  "frameHeight": 320
 }

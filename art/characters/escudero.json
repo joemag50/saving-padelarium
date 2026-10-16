@@ -1,6 +1,5 @@
 {
   "id": "escudero",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 180,
   "animations": [
@@ -35,18 +34,11 @@
     "color": "#3b82f6",
     "eyeColor": "#0b0b12",
     "glowColor": "#93c5fd",
-    "style": "crest",
-    "note": "Casco con cresta en lugar de antenas."
+    "style": "crest"
   },
-  "extras": [
-    {
-      "type": "shield",
-      "hand": "L",
-      "shape": "saucer",
-      "color": "#60a5fa",
-      "lightsColor": "#fde047",
-      "note": "Escudo con forma de platillo volador y lucecitas."
-    }
-  ],
-  "notes": "Azul rey blindado. El escudo siempre al frente; el '¡BLOQUEADO!' es un destello en el escudo, sin animación nueva."
+  "shield": {
+    "color": "#60a5fa",
+    "domeColor": "#bfdbfe",
+    "lightsColor": "#fde047"
+  }
 }

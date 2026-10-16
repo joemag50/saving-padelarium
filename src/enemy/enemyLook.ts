@@ -2,11 +2,12 @@ import Phaser from 'phaser';
 import {
   ENEMY_FEET_MARGIN,
   ENEMY_SPRITE_SCALE,
-  ENEMY_WALK_CYCLE_PX,
   enemyAnimKey,
+  enemyHasHurt,
   enemyHeight,
   enemyMaskTexture,
-  type SpriteEnemyKind,
+  enemyWalkCyclePx,
+  type EnemySpriteId,
 } from './enemyAssets';
 
 /**
@@ -22,6 +23,10 @@ export interface EnemyLook {
   update(now: number, moved: boolean, speed: number, preparing: boolean): void;
   windup(durationMs: number): void;
   strike(): void;
+  /** Dashers: sprinting through the target (true) or done (false). */
+  dash(active: boolean): void;
+  /** A hit bounced off its shield. */
+  block(): void;
   /** Hit flash; `react` also plays the flinch (not for super armor). */
   hit(react: boolean): void;
   /** Knocked out. `unmask` (later levels) shows the person under the costume. */
@@ -58,6 +63,10 @@ export class BlockEnemyLook implements EnemyLook {
 
   strike() {}
 
+  dash() {}
+
+  block() {}
+
   hit() {
     this.flashing = true;
     this.object.setFillStyle(0xffffff);
@@ -79,12 +88,14 @@ export class SpriteEnemyLook implements EnemyLook {
   readonly labelY: number;
   private holdUntil = 0;
   private flashUntil = 0;
+  private flashColor = 0xffffff;
   private down = false;
+  private dashing = false;
   private readonly scene: Phaser.Scene;
-  private readonly kind: SpriteEnemyKind;
+  private readonly kind: EnemySpriteId;
   private readonly container: Phaser.GameObjects.Container;
 
-  constructor(scene: Phaser.Scene, kind: SpriteEnemyKind, container: Phaser.GameObjects.Container) {
+  constructor(scene: Phaser.Scene, kind: EnemySpriteId, container: Phaser.GameObjects.Container) {
     this.scene = scene;
     this.kind = kind;
     this.container = container;
@@ -103,14 +114,14 @@ export class SpriteEnemyLook implements EnemyLook {
   update(now: number, moved: boolean, speed: number, preparing: boolean) {
     if (this.down) return;
     // Warning: blink white while it winds up, like the blocks did.
-    if (now < this.flashUntil) this.object.setTintFill(0xffffff);
+    if (now < this.flashUntil) this.object.setTintFill(this.flashColor);
     else if (preparing && Math.floor(now / 90) % 2 === 0) this.object.setTintFill(0xfff7c2);
     else this.object.clearTint();
 
-    if (preparing || now < this.holdUntil) return;
+    if (preparing || this.dashing || now < this.holdUntil) return;
     if (moved) {
-      // Feet match the ground: one 8-frame cycle per ENEMY_WALK_CYCLE_PX traveled.
-      const frameRate = Phaser.Math.Clamp((8 * speed) / ENEMY_WALK_CYCLE_PX, 4, 14);
+      // Feet match the ground: one 8-frame cycle per walk cycle traveled.
+      const frameRate = Phaser.Math.Clamp((8 * speed) / enemyWalkCyclePx(this.kind), 4, 14);
       if (this.object.anims.currentAnim?.key !== enemyAnimKey(this.kind, 'walk')) {
         this.object.play({ key: enemyAnimKey(this.kind, 'walk'), frameRate });
       }
@@ -130,16 +141,30 @@ export class SpriteEnemyLook implements EnemyLook {
     this.holdUntil = this.scene.time.now + HOLD_MS.strike;
   }
 
+  dash(active: boolean) {
+    if (this.down) return;
+    this.dashing = active;
+    if (active) this.object.play(enemyAnimKey(this.kind, 'dash'));
+  }
+
+  block() {
+    if (this.down) return;
+    this.flashColor = 0x93c5fd;
+    this.flashUntil = this.scene.time.now + 90;
+  }
+
   hit(react: boolean) {
     if (this.down) return;
+    this.flashColor = 0xffffff;
     this.flashUntil = this.scene.time.now + 80;
-    if (!react) return;
+    if (!react || !enemyHasHurt(this.kind)) return;
     this.object.play(enemyAnimKey(this.kind, 'hurt'));
     this.holdUntil = this.scene.time.now + HOLD_MS.hurt;
   }
 
   defeat(unmask: boolean) {
     this.down = true;
+    this.dashing = false;
     this.object.clearTint();
     this.object.play(enemyAnimKey(this.kind, unmask ? 'fall-unmasked' : 'fall'));
     if (unmask) this.tossMask();

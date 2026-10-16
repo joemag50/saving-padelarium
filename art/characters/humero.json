@@ -1,6 +1,5 @@
 {
   "id": "humero",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Men.blend",
   "heightCm": 172,
   "animations": [
@@ -43,8 +42,6 @@
     "color": "#9ca3af",
     "eyeColor": "#111827",
     "glowColor": "#facc15",
-    "style": "gasmask",
-    "note": "Máscara antigás alien: filtro al frente y antenas."
-  },
-  "notes": "Gris con amarillo de advertencia. 'attack' se usa como el lanzamiento de la bomba. Mochila del paquete como máquina de humo (con mangueras)."
+    "style": "gasmask"
+  }
 }

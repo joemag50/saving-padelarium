@@ -1,6 +1,5 @@
 {
   "id": "veloz",
-  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
   "source": "Quaternius_Modular_Women.blend",
   "heightCm": 168,
   "proportions": {
@@ -35,15 +34,11 @@
     "Blue": "#0891b2",
     "Grey": "#f8fafc"
   },
-  "extras": [
-    {
-      "type": "helmet",
-      "visor": true,
-      "visorColor": "#a5f3fc",
-      "fin": true,
-      "color": "#0e7490",
-      "note": "Casco de visera brillante con aleta; es su 'máscara' (sale volando desde el nivel 4)."
-    }
-  ],
-  "notes": "Delgado y bajito, cian con negro. La preparación (agachado para arrancar) puede ser el primer cuadro de 'dash' sostenido con el destello de aviso."
+  "alienMask": {
+    "style": "helmet",
+    "color": "#0e7490",
+    "visorColor": "#a5f3fc",
+    "finColor": "#22d3ee",
+    "size": 0.82
+  }
 }

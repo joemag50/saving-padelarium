@@ -7,7 +7,8 @@ import { actorPx } from './constants';
 export const FINAL_BOSS = {
   label: 'Supremo Galáctico',
   maxHealth: 360,
-  body: { width: actorPx(84), height: actorPx(124), radius: actorPx(40) },
+  // Matches his sprite (~215 px tall with the crown).
+  body: { width: actorPx(84), height: actorPx(140), radius: actorPx(40) },
   color: 0x4338ca,
   /** Health fractions where phase 2 (charge) and phase 3 (abduction) begin. */
   phase2At: 0.66,

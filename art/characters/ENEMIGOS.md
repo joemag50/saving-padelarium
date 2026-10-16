@@ -5,8 +5,7 @@ Cada tipo tiene **sus propios colores**. Se arman igual que los amigos: modelo d
 (`art/blender/build_character.py`) + `art/build.sh <id>`.
 
 Cada enemigo ya tiene su configuración en `art/characters/<id>.json` (piezas, colores, estatura, animaciones y accesorios).
-Las marcadas como "diseño" usan accesorios (`extras`, estilos de máscara) que todavía hay que programar en el script
-antes de correr `art/build.sh`.
+Todos están construidos y conectados en el juego (`src/enemy/enemyAssets.ts`, `enemyLook.ts`, `SupremoBoss.ts`).
 
 Reglas para todos:
 
@@ -15,17 +14,19 @@ Reglas para todos:
   Cada uno necesita `fall` y `fall-unmasked` y la imagen de su máscara.
 - **Solo las animaciones que usa:** cada tipo lista abajo las que su comportamiento en el juego reproduce, y nada más.
 - **Super armadura** (Grandote, Líderes, Supremo): no reaccionan a los golpes, así que no llevan `hurt`.
+- **Muy altos** (Grandote, Líderes): su caída usa un cuadro de 576 px para que no se corte. El Supremo usa un cuadro
+  de 320 px de alto (`frameHeight`) por la corona, y 640 px de ancho para la caída.
 
 | Enemigo | Estado |
 |---|---|
 | Invasor | ✅ `invasor.json` |
-| Veloz | Diseño, `veloz.json` |
-| Grandote | Diseño, `grandote.json` |
-| Tirador | Diseño, `tirador.json` |
-| Escudero | Diseño, `escudero.json` |
-| Humero | Diseño, `humero.json` |
-| Líderes de nivel (5) | Diseño, `lider-1.json` … `lider-5.json` |
-| Supremo Galáctico | Diseño, `supremo.json` |
+| Veloz | ✅ `veloz.json` |
+| Grandote | ✅ `grandote.json` |
+| Tirador | ✅ `tirador.json` |
+| Escudero | ✅ `escudero.json` |
+| Humero | ✅ `humero.json` |
+| Líderes de nivel (5) | ✅ `lider-1.json` … `lider-5.json` (un render por nivel) |
+| Supremo Galáctico | ✅ `supremo.json` |
 
 ---
 
@@ -38,7 +39,7 @@ El básico: camina hasta ti y te da un puñetazo.
 - **Estatura:** 176 cm.
 - **Animaciones:** `idle`, `walk`, `attack` (el juego la parte en preparación + golpe), `hurt`, `fall`, `fall-unmasked`.
 
-## Veloz (`veloz`)
+## Veloz (`veloz`) ✅
 
 Rápido y frágil: se prepara de lejos y cruza la pantalla embistiendo.
 
@@ -49,7 +50,7 @@ Rápido y frágil: se prepara de lejos y cruza la pantalla embistiendo.
 - **Máscara:** el casco con visera.
 - **Animaciones:** `idle`, `walk`, `windup` (agachado, listo para arrancar), `dash` (correr a toda velocidad), `hurt`, `fall`, `fall-unmasked`.
 
-## Grandote (`grandote`)
+## Grandote (`grandote`) ✅
 
 Tanque lento: mucha vida, golpe fuerte con aviso largo, no lo empujas.
 
@@ -60,7 +61,7 @@ Tanque lento: mucha vida, golpe fuerte con aviso largo, no lo empujas.
 - **Máscara:** la cabeza de un ojo.
 - **Animaciones:** `idle`, `walk`, `attack` (golpe pesado, más lento), `fall`, `fall-unmasked`. Sin `hurt` (super armadura).
 
-## Tirador (`tirador`)
+## Tirador (`tirador`) ✅
 
 Mantiene distancia y te saca pelotas de pádel por tu carril; se las puedes regresar.
 
@@ -71,7 +72,7 @@ Mantiene distancia y te saca pelotas de pádel por tu carril; se las puedes regr
 - **Animaciones:** `idle`, `walk` (también al alejarse de ti), `serve` (el juego la parte en apuntar + saque), `hurt`
   (también cuando le regresas la pelota), `fall`, `fall-unmasked`.
 
-## Escudero (`escudero`)
+## Escudero (`escudero`) ✅
 
 Escudo al frente: solo le haces daño por la espalda (o con el especial de pareja).
 
@@ -82,7 +83,7 @@ Escudo al frente: solo le haces daño por la espalda (o con el especial de parej
 - **Animaciones:** `idle`, `walk`, `attack` (golpe con la otra mano, el escudo siempre al frente), `hurt`, `fall`, `fall-unmasked`.
   El "¡BLOQUEADO!" se ve con un destello en el escudo, sin animación nueva.
 
-## Humero (`humero`)
+## Humero (`humero`) ✅
 
 Lanza bombas de humo: marca el piso y luego sale una nube que lastima.
 
@@ -92,7 +93,7 @@ Lanza bombas de humo: marca el piso y luego sale una nube que lastima.
 - **Estatura:** 172 cm.
 - **Animaciones:** `idle`, `walk`, `throw` (lanzar la bomba), `hurt`, `fall`, `fall-unmasked`.
 
-## Líderes de nivel (`lider-<nivel>`)
+## Líderes de nivel (`lider-<nivel>`) ✅
 
 Uno por nivel, más alto e imponente; no lo empujas. Comparten cuerpo (hombreras y capa corta) y cambian color y accesorio
 según el tema de su nivel:
@@ -107,9 +108,9 @@ según el tema de su nivel:
 
 - **Estatura:** ~190 cm.
 - **Animaciones:** `idle`, `walk`, `attack`, `fall`, `fall-unmasked`. Sin `hurt` (super armadura).
-- **Por decidir:** 5 renders con su color y accesorio (se ven mejor), o 1 render neutro teñido en el juego (pesa menos).
+- **Decidido:** 5 renders, cada uno con su color y accesorio.
 
-## Supremo Galáctico (`supremo`) — jefe final
+## Supremo Galáctico (`supremo`) — jefe final ✅
 
 El más grande. Al final se revela que es el **Ingeniero Galán** con un disfraz de foami.
 
