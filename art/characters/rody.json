@@ -1,0 +1,21 @@
+{
+  "id": "rody",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 160,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Beach_Body",
+    "legs": "Beach_Legs",
+    "feet": "Suit_Feet"
+  },
+  "colors": {
+    "Skin": "#f3d3bd",
+    "Skin_Darker": "#dcb59a",
+    "Hair": "#141414",
+    "Eyebrows": "#141414",
+    "LightBrown": "#c81e1e",
+    "Red_Dark": "#161616",
+    "White": "#161616",
+    "Black": "#161616"
+  }
+}

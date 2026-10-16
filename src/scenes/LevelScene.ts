@@ -35,6 +35,7 @@ import { getCurrentLevel, getPlayerCount } from '../systems/session';
 import type { PlayerIndex } from '../types/player';
 import { PairSpecial } from '../combat/PairSpecial';
 import { Player } from '../player/Player';
+import { getHeroLook, heroAnimKey, heroIdleTexture } from '../player/heroAssets';
 import { PlayerInput } from '../player/PlayerInput';
 import { soundManager } from '../systems/soundManager';
 import { GameHud } from '../ui/GameHud';
@@ -260,13 +261,27 @@ export class LevelScene extends Phaser.Scene {
     const rescued = level.rescue.characters.map(getRosterCharacter);
     rescued.forEach((character, index) => {
       const offsetX = (index - (rescued.length - 1) / 2) * actorPx(64);
+      const look = getHeroLook(character.id);
+      let labelY = -PLAYER.bodyHeight / 2 - 16;
+      if (look.characterId) {
+        // Standing on the same floor line as the rectangles' bottom, facing the party (left).
+        const feetY = PLAYER.bodyHeight / 2;
+        this.rescuedFriends.add(
+          this.add
+            .sprite(offsetX, feetY + look.spriteY, heroIdleTexture(look))
+            .setOrigin(0.5, 1)
+            .setScale(look.scale)
+            .setFlipX(true)
+            .play(heroAnimKey(look, 'idle')),
+        );
+        labelY = feetY + look.labelY + 6;
+      } else {
+        this.rescuedFriends.add(
+          this.add.rectangle(offsetX, 0, PLAYER.bodyWidth, PLAYER.bodyHeight, character.color).setStrokeStyle(2, 0xffffff, 0.4),
+        );
+      }
       this.rescuedFriends.add(
-        this.add.rectangle(offsetX, 0, PLAYER.bodyWidth, PLAYER.bodyHeight, character.color).setStrokeStyle(2, 0xffffff, 0.4),
-      );
-      this.rescuedFriends.add(
-        this.add
-          .text(offsetX, -PLAYER.bodyHeight / 2 - 16, character.name, textStyle('label', { color: '#fff' }))
-          .setOrigin(0.5),
+        this.add.text(offsetX, labelY, character.name, textStyle('label', { color: '#fff' })).setOrigin(0.5),
       );
     });
   }

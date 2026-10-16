@@ -1,0 +1,32 @@
+{
+  "id": "arturo",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 175,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Beach_Body",
+    "legs": "Beach_Legs",
+    "feet": "Casual_Feet"
+  },
+  "colors": {
+    "Skin": "#e8b892",
+    "Skin_Darker": "#d09a76",
+    "Hair": "#141414",
+    "Eyebrows": "#141414",
+    "LightBrown": "#f2f2f2",
+    "Purple": "#f2f2f2",
+    "White": "#f2f2f2"
+  },
+  "partColors": {
+    "legs": {
+      "Red_Dark": "#1c2a4a",
+      "White": "#1c2a4a"
+    }
+  },
+  "headband": {
+    "color": "#1c2a4a"
+  },
+  "wristbands": {
+    "color": "#1c2a4a"
+  }
+}

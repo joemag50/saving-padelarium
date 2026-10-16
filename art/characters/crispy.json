@@ -1,0 +1,23 @@
+{
+  "id": "crispy",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 175,
+  "parts": {
+    "head": "Suit_Head",
+    "body": "Casual2_Body",
+    "legs": "Casual2_Legs",
+    "feet": "Suit_Feet"
+  },
+  "colors": {
+    "Skin": "#f3d3bd",
+    "Skin_Darker": "#dcb59a",
+    "Hair": "#b4471f",
+    "Eyebrows": "#8a3416",
+    "LightBrown": "#2e9e4f",
+    "LightBlue": "#1f4e9c",
+    "Black": "#161616"
+  },
+  "longHair": {
+    "color": "#b4471f"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "fisam",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 180,
+  "parts": {
+    "head": "Suit_Head",
+    "body": "Beach_Body",
+    "legs": "Beach_Legs",
+    "feet": "Casual_Feet"
+  },
+  "colors": {
+    "Skin": "#a8714a",
+    "Skin_Darker": "#8c5a38",
+    "Hair": "#2f6fe0",
+    "Eyebrows": "#141414",
+    "LightBrown": "#2563eb",
+    "Purple": "#8a8f98",
+    "White": "#c9ccd1"
+  },
+  "partColors": {
+    "legs": {
+      "Red_Dark": "#161616",
+      "White": "#161616"
+    }
+  },
+  "headband": {
+    "color": "#f2f2f2"
+  },
+  "wristbands": {
+    "color": "#f2f2f2"
+  }
+}

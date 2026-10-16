@@ -34,9 +34,25 @@ export type HeroAnimName = keyof typeof HERO_ANIMS | 'dodge' | 'hurt';
 const CHARACTER_HEIGHTS = {
   jose: 167,
   carol: 148,
-} as const satisfies Partial<Record<RosterCharacterId, number>>;
+  casillas: 153,
+  armando: 175,
+  arturo: 163,
+  fisam: 167,
+  juaquin: 164,
+  alberto: 153,
+  rody: 149,
+  cris: 148,
+  crispy: 163,
+  lucia: 157,
+  fatima: 152,
+  flor: 148,
+} as const satisfies Record<RosterCharacterId, number>;
 type SpriteCharacterId = keyof typeof CHARACTER_HEIGHTS;
 const CHARACTER_SPRITE_IDS = Object.keys(CHARACTER_HEIGHTS) as SpriteCharacterId[];
+/** Taller friends need a wider frame to lie down whole (`wideFrames` in their JSON). */
+const CHARACTER_FRAME_WIDTHS: Partial<Record<SpriteCharacterId, Partial<Record<HeroAnimName, number>>>> = {
+  armando: { fall: 448 },
+};
 
 const CHARACTER_FRAME = 256;
 /** Frames per strip and playback; must match the Blender render (art/characters/<id>.frames.json). */
@@ -124,7 +140,7 @@ export function preloadHeroAssets(scene: Phaser.Scene) {
   for (const id of CHARACTER_SPRITE_IDS) {
     for (const [anim, spec] of Object.entries(CHARACTER_ANIMS)) {
       scene.load.spritesheet(`${id}-${anim}`, `./assets/characters/${id}/${anim}.png`, {
-        frameWidth: spec.frameWidth ?? CHARACTER_FRAME,
+        frameWidth: CHARACTER_FRAME_WIDTHS[id]?.[anim as HeroAnimName] ?? spec.frameWidth ?? CHARACTER_FRAME,
         frameHeight: CHARACTER_FRAME,
       });
     }

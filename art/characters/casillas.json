@@ -1,0 +1,23 @@
+{
+  "id": "casillas",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 165,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Casual2_Body",
+    "legs": "Casual_Legs",
+    "feet": "Suit_Feet"
+  },
+  "colors": {
+    "Skin": "#e8b892",
+    "Skin_Darker": "#d09a76",
+    "Hair": "#141414",
+    "Eyebrows": "#141414",
+    "LightBrown": "#c81e1e",
+    "LightBlue": "#1f4e9c",
+    "Black": "#161616"
+  },
+  "glasses": {
+    "color": "#161616"
+  }
+}

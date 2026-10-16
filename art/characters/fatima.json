@@ -1,0 +1,33 @@
+{
+  "id": "fatima",
+  "source": "Quaternius_Modular_Women.blend",
+  "heightCm": 165,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Casual_Body",
+    "legs": "Casual_Legs",
+    "feet": "Casual_Feet"
+  },
+  "colors": {
+    "Skin": "#a8714a",
+    "Hair_Brown": "#141414",
+    "Brown": "#141414",
+    "White": "#2563eb",
+    "Orange": "#161616",
+    "Grey": "#f2f2f2",
+    "Hair_Blond": "#141414"
+  },
+  "paint": [
+    {
+      "part": "legs",
+      "from": "Orange",
+      "color": "#a8714a",
+      "below": 0.2
+    }
+  ],
+  "eyeMaterial": "Brown",
+  "hairFill": {
+    "color": "#141414",
+    "drop": 1.3
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "frame": 256,
+  "animations": {
+    "idle": {
+      "frames": 8,
+      "loop": true,
+      "width": 256
+    },
+    "walk": {
+      "frames": 8,
+      "loop": true,
+      "width": 256
+    },
+    "run": {
+      "frames": 8,
+      "loop": true,
+      "width": 256
+    },
+    "attack": {
+      "frames": 13,
+      "loop": false,
+      "width": 256
+    },
+    "hurt": {
+      "frames": 4,
+      "loop": false,
+      "width": 256
+    },
+    "dodge": {
+      "frames": 8,
+      "loop": false,
+      "width": 256
+    },
+    "fall": {
+      "frames": 8,
+      "loop": false,
+      "width": 384
+    },
+    "dash": {
+      "frames": 8,
+      "loop": true,
+      "width": 256
+    },
+    "serve": {
+      "frames": 12,
+      "loop": false,
+      "width": 256
+    },
+    "charge": {
+      "frames": 8,
+      "loop": true,
+      "width": 256
+    },
+    "raise": {
+      "frames": 8,
+      "loop": false,
+      "width": 256
+    },
+    "stunned": {
+      "frames": 6,
+      "loop": false,
+      "width": 256
+    },
+    "exhausted": {
+      "frames": 8,
+      "loop": true,
+      "width": 256
+    }
+  }
+}

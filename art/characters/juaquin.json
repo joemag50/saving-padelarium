@@ -1,0 +1,46 @@
+{
+  "id": "juaquin",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 170,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Beach_Body",
+    "legs": "Beach_Legs",
+    "feet": "Casual2_Feet"
+  },
+  "colors": {
+    "Skin": "#6cc25a",
+    "Skin_Darker": "#4f9a42",
+    "Hair": "#141414",
+    "Eyebrows": "#141414",
+    "LightBrown": "#f2f2f2",
+    "Red_Dark": "#d42a2a",
+    "White": "#d42a2a"
+  },
+  "paint": [
+    {
+      "part": "legs",
+      "from": "Skin",
+      "color": "#2563eb",
+      "above": 0.03,
+      "below": 0.24,
+      "side": "R"
+    }
+  ],
+  "skirt": {
+    "color": "#d42a2a"
+  },
+  "glasses": {
+    "color": "#161616"
+  },
+  "mustache": {
+    "color": "#141414"
+  },
+  "earrings": {
+    "color": "#f2c94c"
+  },
+  "dreads": {
+    "color": "#141414"
+  },
+  "rastaHat": {}
+}

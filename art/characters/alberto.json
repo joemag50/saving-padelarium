@@ -1,0 +1,25 @@
+{
+  "id": "alberto",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 165,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Casual2_Body",
+    "legs": "Casual_Legs",
+    "feet": "Casual_Feet"
+  },
+  "colors": {
+    "Skin": "#a8714a",
+    "Skin_Darker": "#8c5a38",
+    "Hair": "#141414",
+    "Eyebrows": "#141414",
+    "LightBrown": "#8a8f98",
+    "LightBlue": "#161616",
+    "Purple": "#f2f2f2",
+    "White": "#f2f2f2"
+  },
+  "cap": {
+    "color": "#c81e1e",
+    "backwards": true
+  }
+}

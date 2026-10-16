@@ -1,0 +1,29 @@
+{
+  "id": "armando",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 185,
+  "parts": {
+    "head": "Casual_Head",
+    "body": "Casual2_Body",
+    "legs": "Casual_Legs",
+    "feet": "Suit_Feet"
+  },
+  "colors": {
+    "Skin": "#e8b892",
+    "Skin_Darker": "#d09a76",
+    "Hair": "#141414",
+    "Eyebrows": "#141414",
+    "LightBrown": "#2563eb",
+    "LightBlue": "#8a8f98",
+    "Black": "#161616"
+  },
+  "curls": {
+    "color": "#141414"
+  },
+  "headband": {
+    "color": "#f2f2f2"
+  },
+  "wideFrames": {
+    "fall": 448
+  }
+}

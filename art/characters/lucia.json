@@ -1,0 +1,27 @@
+{
+  "id": "lucia",
+  "source": "Quaternius_Modular_Women.blend",
+  "heightCm": 170,
+  "parts": {
+    "head": "Formad_Head",
+    "body": "Casual_Body",
+    "legs": "Casual_Legs",
+    "feet": "Casual_Feet"
+  },
+  "colors": {
+    "Skin": "#f3d3bd",
+    "White": "#161616",
+    "Orange": "#161616",
+    "Grey": "#f2f2f2",
+    "Red": "#5a3820",
+    "Brown": "#3a2414"
+  },
+  "paint": [
+    {
+      "part": "legs",
+      "from": "Orange",
+      "color": "#f3d3bd",
+      "below": 0.2
+    }
+  ]
+}

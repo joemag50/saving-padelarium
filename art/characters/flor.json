@@ -1,0 +1,40 @@
+{
+  "id": "flor",
+  "source": "Quaternius_Modular_Women.blend",
+  "heightCm": 160,
+  "parts": {
+    "head": "Witch_Head",
+    "body": "Casual_Body",
+    "legs": "Formal_Legs",
+    "feet": "Casual_Feet"
+  },
+  "colors": {
+    "Skin": "#a8714a",
+    "Hair_Black": "#141414",
+    "White": "#161616",
+    "LimeGreen": "#f2f2f2",
+    "Grey": "#161616"
+  },
+  "deleteMaterials": {
+    "head": [
+      "Purple",
+      "Gold"
+    ]
+  },
+  "earrings": {
+    "color": "#f2c94c",
+    "size": 1.0
+  },
+  "bracelets": {
+    "color": "#f2c94c"
+  },
+  "longHair": {
+    "color": "#141414",
+    "length": 0.42
+  },
+  "eyeMaterial": "Brown",
+  "hairFill": {
+    "color": "#141414",
+    "drop": 1.3
+  }
+}
