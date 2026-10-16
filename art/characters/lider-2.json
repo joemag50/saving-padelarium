@@ -1,0 +1,56 @@
+{
+  "id": "lider-2",
+  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 190,
+  "animations": [
+    "idle",
+    "walk",
+    "attack",
+    "fall"
+  ],
+  "unmaskedAnimations": [
+    "fall"
+  ],
+  "wideFrames": {
+    "fall": 448
+  },
+  "parts": {
+    "head": "Casual2_Head",
+    "body": "SpaceSuit_Body",
+    "legs": "SpaceSuit_Legs",
+    "feet": "Suit_Feet"
+  },
+  "colors": {
+    "Skin": "#c99066",
+    "Skin_Darker": "#a8714a",
+    "Hair": "#2b1d14",
+    "Eyebrows": "#2b1d14",
+    "SciFi_Main": "#059669",
+    "SciFi_MainDark": "#064e3b",
+    "SciFi_Light": "#f8fafc",
+    "SciFi_Light_Accent": "#fde047",
+    "Black": "#111827"
+  },
+  "alienMask": {
+    "color": "#059669",
+    "eyeColor": "#0b0b12",
+    "glowColor": "#fde047"
+  },
+  "extras": [
+    {
+      "type": "cape",
+      "color": "#065f46"
+    },
+    {
+      "type": "shoulderPads",
+      "color": "#6ee7b7"
+    },
+    {
+      "type": "steamTank",
+      "color": "#a7f3d0",
+      "note": "Tanque de vapor en la espalda (puede reutilizar la mochila)."
+    }
+  ],
+  "notes": "Comandante Vapor (nivel 2). Vapor verde como la niebla del nivel 2. Sin 'hurt' (super armadura)."
+}

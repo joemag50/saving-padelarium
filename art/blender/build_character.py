@@ -34,6 +34,13 @@ ANIMATIONS = {
     'hurt': ('HitRecieve', 4, False),
     'dodge': ('Roll', 8, False),
     'fall': ('Death', 8, False),
+    # Proposed for the enemies in art/characters/ENEMIGOS.md (not rendered yet).
+    'dash': ('Run', 8, True),
+    'serve': ('Sword_Slash', 12, False),
+    'charge': ('Run', 8, True),
+    'raise': ('Wave', 8, False),
+    'stunned': ('HitRecieve_2', 6, False),
+    'exhausted': ('Idle_Neutral', 8, True),
 }
 # Animations that leave the square frame (lying on the floor) get a wider one, same center.
 WIDE_FRAMES = {'fall': 384}

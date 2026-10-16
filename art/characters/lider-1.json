@@ -1,0 +1,51 @@
+{
+  "id": "lider-1",
+  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 190,
+  "animations": [
+    "idle",
+    "walk",
+    "attack",
+    "fall"
+  ],
+  "unmaskedAnimations": [
+    "fall"
+  ],
+  "wideFrames": {
+    "fall": 448
+  },
+  "parts": {
+    "head": "Casual2_Head",
+    "body": "SpaceSuit_Body",
+    "legs": "SpaceSuit_Legs",
+    "feet": "Suit_Feet"
+  },
+  "colors": {
+    "Skin": "#c99066",
+    "Skin_Darker": "#a8714a",
+    "Hair": "#2b1d14",
+    "Eyebrows": "#2b1d14",
+    "SciFi_Main": "#c026d3",
+    "SciFi_MainDark": "#701a75",
+    "SciFi_Light": "#f8fafc",
+    "SciFi_Light_Accent": "#fde047",
+    "Black": "#111827"
+  },
+  "alienMask": {
+    "color": "#c026d3",
+    "eyeColor": "#0b0b12",
+    "glowColor": "#fde047"
+  },
+  "extras": [
+    {
+      "type": "cape",
+      "color": "#86198f"
+    },
+    {
+      "type": "shoulderPads",
+      "color": "#f0abfc"
+    }
+  ],
+  "notes": "Líder del escuadrón (nivel 1). Capa corta y hombreras. Sin 'hurt' (super armadura)."
+}

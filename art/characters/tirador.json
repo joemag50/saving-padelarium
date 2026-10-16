@@ -1,0 +1,56 @@
+{
+  "id": "tirador",
+  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 175,
+  "animations": [
+    "idle",
+    "walk",
+    "serve",
+    "hurt",
+    "fall"
+  ],
+  "unmaskedAnimations": [
+    "fall"
+  ],
+  "wideFrames": {
+    "fall": 448
+  },
+  "parts": {
+    "head": "Casual2_Head",
+    "body": "SpaceSuit_Body",
+    "legs": "SpaceSuit_Legs",
+    "feet": "Casual2_Feet"
+  },
+  "colors": {
+    "Skin": "#c99066",
+    "Skin_Darker": "#a8714a",
+    "Hair": "#2b1d14",
+    "Eyebrows": "#2b1d14",
+    "SciFi_Main": "#84cc16",
+    "SciFi_MainDark": "#3f6212",
+    "SciFi_Light": "#f7fee7",
+    "SciFi_Light_Accent": "#ffffff",
+    "Red_Dark": "#f8fafc",
+    "White": "#84cc16"
+  },
+  "alienMask": {
+    "color": "#bef264",
+    "eyeColor": "#0b0b12",
+    "glowColor": "#facc15"
+  },
+  "extras": [
+    {
+      "type": "racket",
+      "hand": "R",
+      "color": "#111827",
+      "faceColor": "#facc15",
+      "note": "Raqueta de pádel en la mano derecha."
+    },
+    {
+      "type": "wristbands",
+      "color": "#ffffff"
+    }
+  ],
+  "notes": "Verde lima con blanco. 'serve' se parte en el juego en apuntar + saque (como el golpe del Invasor). 'hurt' también cuando le regresas la pelota."
+}

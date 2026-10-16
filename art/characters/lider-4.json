@@ -1,0 +1,56 @@
+{
+  "id": "lider-4",
+  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 190,
+  "animations": [
+    "idle",
+    "walk",
+    "attack",
+    "fall"
+  ],
+  "unmaskedAnimations": [
+    "fall"
+  ],
+  "wideFrames": {
+    "fall": 448
+  },
+  "parts": {
+    "head": "Casual2_Head",
+    "body": "SpaceSuit_Body",
+    "legs": "SpaceSuit_Legs",
+    "feet": "Suit_Feet"
+  },
+  "colors": {
+    "Skin": "#c99066",
+    "Skin_Darker": "#a8714a",
+    "Hair": "#2b1d14",
+    "Eyebrows": "#2b1d14",
+    "SciFi_Main": "#ca8a04",
+    "SciFi_MainDark": "#713f12",
+    "SciFi_Light": "#f8fafc",
+    "SciFi_Light_Accent": "#fde047",
+    "Black": "#111827"
+  },
+  "alienMask": {
+    "color": "#ca8a04",
+    "eyeColor": "#0b0b12",
+    "glowColor": "#fde047"
+  },
+  "extras": [
+    {
+      "type": "shoulderPads",
+      "color": "#fde047"
+    },
+    {
+      "type": "hardHat",
+      "color": "#facc15",
+      "antennae": true
+    },
+    {
+      "type": "hazardStripes",
+      "color": "#111827"
+    }
+  ],
+  "notes": "Sargento Grúa (nivel 4). Casco de obra con antenas y franjas de advertencia (estacionamiento del nivel 4). Sin 'hurt' (super armadura)."
+}

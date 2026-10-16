@@ -1,0 +1,49 @@
+{
+  "id": "veloz",
+  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
+  "source": "Quaternius_Modular_Women.blend",
+  "heightCm": 168,
+  "proportions": {
+    "width": 0.95
+  },
+  "animations": [
+    "idle",
+    "walk",
+    "dash",
+    "hurt",
+    "fall"
+  ],
+  "unmaskedAnimations": [
+    "fall"
+  ],
+  "wideFrames": {
+    "fall": 448
+  },
+  "parts": {
+    "head": "SciFi_Head",
+    "body": "SciFi_Body",
+    "legs": "SciFi_Legs",
+    "feet": "Casual_Feet"
+  },
+  "colors": {
+    "Skin": "#d9a27a",
+    "Hair_Black": "#1f1a17",
+    "Brown": "#1f1a17",
+    "Black": "#0f172a",
+    "Metal": "#e2e8f0",
+    "LightBlue": "#67e8f9",
+    "Blue": "#0891b2",
+    "Grey": "#f8fafc"
+  },
+  "extras": [
+    {
+      "type": "helmet",
+      "visor": true,
+      "visorColor": "#a5f3fc",
+      "fin": true,
+      "color": "#0e7490",
+      "note": "Casco de visera brillante con aleta; es su 'máscara' (sale volando desde el nivel 4)."
+    }
+  ],
+  "notes": "Delgado y bajito, cian con negro. La preparación (agachado para arrancar) puede ser el primer cuadro de 'dash' sostenido con el destello de aviso."
+}

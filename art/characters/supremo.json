@@ -1,0 +1,64 @@
+{
+  "id": "supremo",
+  "status": "diseño (ver ENEMIGOS.md); falta programar los extras antes de construir",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 210,
+  "proportions": {
+    "width": 1.3
+  },
+  "animations": [
+    "idle",
+    "walk",
+    "serve",
+    "charge",
+    "raise",
+    "stunned",
+    "exhausted"
+  ],
+  "unmaskedAnimations": [
+    "fall"
+  ],
+  "wideFrames": {
+    "fall": 512
+  },
+  "parts": {
+    "head": "Worker_Head",
+    "body": "King_Body",
+    "legs": "King_Legs",
+    "feet": "King_Feet"
+  },
+  "colors": {
+    "Skin": "#e0ac85",
+    "Eyebrows": "#3f3f46",
+    "Moustache": "#3f3f46",
+    "Worker_Yellow": "#facc15",
+    "Blue": "#6d28d9",
+    "Metal": "#fbbf24",
+    "Beige": "#fde68a",
+    "Metal_Dark": "#b45309",
+    "DarkBrown": "#4c1d95",
+    "Gold": "#fde047"
+  },
+  "alienMask": {
+    "color": "#a78bfa",
+    "eyeColor": "#0b0b12",
+    "glowColor": "#fde047",
+    "style": "emperor",
+    "note": "Cabeza grande con corona/antenas de emperador galáctico."
+  },
+  "extras": [
+    {
+      "type": "cape",
+      "color": "#6d28d9",
+      "long": true
+    },
+    {
+      "type": "racket",
+      "hand": "R",
+      "scale": 1.6,
+      "color": "#fbbf24",
+      "faceColor": "#4c1d95"
+    }
+  ],
+  "notes": "Jefe final. Disfraz 'de foami' exagerado. Debajo: el Ingeniero Galán (cabeza con bigote y casco de obra del paquete). Al derrotarlo SIEMPRE se le cae la máscara (solo usa 'fall-unmasked'). 'serve' también sirve para el raquetazo cercano."
+}
