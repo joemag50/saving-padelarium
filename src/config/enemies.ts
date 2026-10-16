@@ -53,7 +53,8 @@ export const ENEMY_KINDS: Record<EnemyKind, EnemyProfile> = {
     role: 'melee',
     maxHealth: 30,
     moveSpeed: 150,
-    body: BODY,
+    // Matches its sprite: a ~165 px tall costumed person.
+    body: body(34, 110),
     attackDamage: 8,
     reach: actorPx(60),
     attackWindupMs: 450,

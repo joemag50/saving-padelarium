@@ -4,6 +4,10 @@ import { actorPx } from '../config/constants';
 import { DEBUG_HITBOXES } from '../config/debug';
 import { ATTACKS_PER_TURN, ENEMY_KINDS, WAIT_DISTANCE, type EnemyKind, type EnemyProfile, type EnemyStats } from '../config/enemies';
 import { COMBAT_TEAM } from '../combat/damageRules';
+import { MASK_REVEAL_FROM_LEVEL } from '../data/levels';
+import { getCurrentLevel } from '../systems/session';
+import { hasEnemySprites } from './enemyAssets';
+import { BlockEnemyLook, SpriteEnemyLook, type EnemyLook } from './enemyLook';
 import { Combatant } from '../combat/Combatant';
 import { createCenteredHitbox, drawHitboxOutline, hitboxesOverlap } from '../combat/overlap';
 import type { EncounterActor, EnemyContext } from '../core/EncounterManager';
@@ -50,7 +54,10 @@ export class InvaderEnemy implements EncounterActor {
   private readonly scene: Phaser.Scene;
   private readonly context: EnemyContext;
   private readonly profile: EnemyProfile;
-  private readonly body: Phaser.GameObjects.Rectangle;
+  private readonly look: EnemyLook;
+  /** Last position, to tell walking from standing for the animation. */
+  private lastX = 0;
+  private lastY = 0;
   private readonly shield?: Phaser.GameObjects.Rectangle;
   private readonly label: Phaser.GameObjects.Text;
   private telegraph?: Phaser.GameObjects.Graphics;
@@ -106,13 +113,15 @@ export class InvaderEnemy implements EncounterActor {
     const isLeader = kind === 'miniBoss';
 
     this.container = scene.add.container(x, y);
-    this.body = scene.add
-      .rectangle(0, FEET_OFFSET - height / 2, width, height, this.profile.color)
-      .setStrokeStyle(isLeader ? 3 : 2, 0xffffff, 0.4);
+    this.lastX = x;
+    this.lastY = y;
+    this.look = hasEnemySprites(kind)
+      ? new SpriteEnemyLook(scene, kind, this.container)
+      : new BlockEnemyLook(scene, width, height, this.profile.color, isLeader);
     this.label = scene.add
-      .text(0, FEET_OFFSET - height - 18, this.profile.label, textStyle(isLeader ? 'bodySmall' : 'label', { color: '#ffffff' }))
+      .text(0, FEET_OFFSET + this.look.labelY, this.profile.label, textStyle(isLeader ? 'bodySmall' : 'label', { color: '#ffffff' }))
       .setOrigin(0.5);
-    this.container.add([this.body, this.label]);
+    this.container.add([this.look.object, this.label]);
     if (this.profile.shield) {
       this.shield = scene.add.rectangle(0, FEET_OFFSET - height / 2, 8, height + 6, 0x93c5fd, 0.9);
       this.container.add(this.shield);
@@ -189,7 +198,7 @@ export class InvaderEnemy implements EncounterActor {
     }
 
     this.updateFacing(now, target);
-    this.updateVisuals();
+    this.updateVisuals(now, deltaSeconds);
     this.drawDebug();
   }
 
@@ -208,10 +217,7 @@ export class InvaderEnemy implements EncounterActor {
 
   onHit(now: number) {
     if (!this.isActive) return;
-    this.body.setFillStyle(0xffffff);
-    this.scene.time.delayedCall(80, () => {
-      if (this.isActive) this.updateVisuals();
-    });
+    this.look.hit(!this.profile.superArmor);
     this.combatant.invulnerableUntil = now + 120;
     if (this.profile.superArmor) return;
 
@@ -251,9 +257,17 @@ export class InvaderEnemy implements EncounterActor {
     this.telegraph?.clear();
     this.hitboxDebug?.clear();
     this.shield?.setVisible(false);
-    this.label.setText('Derrotado');
-    this.body.setFillStyle(0x4b5563, 0.5);
-    this.scene.tweens.add({ targets: this.container, alpha: 0.25, duration: 250 });
+    const sprite = hasEnemySprites(this.kind);
+    // From mid-story on, costumes come off when they go down (see MASK_REVEAL_FROM_LEVEL).
+    this.look.defeat(getCurrentLevel(this.scene.registry).id >= MASK_REVEAL_FROM_LEVEL);
+    if (sprite) {
+      // The fall shows it; fade once they're on the floor.
+      this.label.setVisible(false);
+      this.scene.tweens.add({ targets: this.container, alpha: 0.35, delay: 700, duration: 400 });
+    } else {
+      this.label.setText('Derrotado');
+      this.scene.tweens.add({ targets: this.container, alpha: 0.25, duration: 250 });
+    }
   }
 
   // --- Melee and dash -------------------------------------------------------------------------
@@ -338,6 +352,7 @@ export class InvaderEnemy implements EncounterActor {
   }
 
   private strike(now: number, living: Player[]) {
+    this.look.strike();
     const box = this.attackHitbox();
     for (const player of living) {
       if (player.isInvulnerable(now)) continue;
@@ -471,6 +486,7 @@ export class InvaderEnemy implements EncounterActor {
   // --- Shared helpers ---------------------------------------------------------------------------
 
   private enter(state: AiState, now: number, durationMs: number) {
+    if (state === 'windup') this.look.windup(durationMs);
     this.state = state;
     this.stateStartedAt = now;
     this.stateDurationMs = durationMs;
@@ -562,10 +578,13 @@ export class InvaderEnemy implements EncounterActor {
     );
   }
 
-  private updateVisuals() {
+  private updateVisuals(now: number, deltaSeconds: number) {
     const preparing = this.state === 'windup' || this.state === 'aim';
-    this.body.setFillStyle(preparing ? 0xffffff : this.profile.color, preparing ? 0.35 : 1);
-    this.body.setScale(this.facing, 1);
+    const traveled = Math.hypot(this.container.x - this.lastX, this.container.y - this.lastY);
+    this.lastX = this.container.x;
+    this.lastY = this.container.y;
+    this.look.setFacing(this.facing);
+    this.look.update(now, traveled > 0.3, deltaSeconds > 0 ? traveled / deltaSeconds : 0, preparing);
     this.shield?.setX(this.facing * (this.profile.body.width / 2 + 6));
   }
 

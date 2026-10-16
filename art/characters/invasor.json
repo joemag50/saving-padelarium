@@ -1,0 +1,41 @@
+{
+  "id": "invasor",
+  "source": "Quaternius_Modular_Men.blend",
+  "heightCm": 176,
+  "animations": [
+    "idle",
+    "walk",
+    "attack",
+    "hurt",
+    "fall"
+  ],
+  "unmaskedAnimations": [
+    "fall"
+  ],
+  "wideFrames": {
+    "fall": 448
+  },
+  "parts": {
+    "head": "Casual2_Head",
+    "body": "SpaceSuit_Body",
+    "legs": "SpaceSuit_Legs",
+    "feet": "Casual2_Feet"
+  },
+  "colors": {
+    "Skin": "#c99066",
+    "Skin_Darker": "#a8714a",
+    "Hair": "#2b1d14",
+    "Eyebrows": "#2b1d14",
+    "SciFi_Main": "#7c3aed",
+    "SciFi_MainDark": "#4c1d95",
+    "SciFi_Light": "#c4b5fd",
+    "SciFi_Light_Accent": "#a3e635",
+    "Red_Dark": "#e5e7eb",
+    "White": "#6b7280"
+  },
+  "alienMask": {
+    "color": "#a3e635",
+    "eyeColor": "#0b0b12",
+    "glowColor": "#f0abfc"
+  }
+}

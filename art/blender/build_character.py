@@ -134,6 +134,39 @@ def world_bbox(objs):
     return lo, hi
 
 
+def ride_head(obj):
+    """Parent to the head bone, keeping its place, so it follows every animation."""
+    bpy.context.view_layer.update()
+    world = obj.matrix_world.copy()
+    obj.parent = armature
+    obj.parent_type = 'BONE'
+    obj.parent_bone = 'Head'
+    bpy.context.view_layer.update()
+    obj.matrix_world = world
+
+
+def add_object(name, mesh, color):
+    obj = bpy.data.objects.new(name, mesh)
+    scene.collection.objects.link(obj)
+    obj.data.materials.append(toon_material(name, color))
+    return obj
+
+
+def ellipsoid(name, color, radius, scale, location, segments=(16, 10)):
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=segments[0], v_segments=segments[1], radius=radius)
+    for v in bm.verts:
+        v.co.x *= scale[0]
+        v.co.y *= scale[1]
+        v.co.z *= scale[2]
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = add_object(name, mesh, color)
+    obj.location = location
+    return obj
+
+
 armature.data.pose_position = 'REST'
 bpy.context.view_layer.update()
 head_obj = bpy.data.objects[config['parts']['head']]
@@ -168,15 +201,49 @@ if 'cap' in config:
     cap.rotation_euler = (math.radians(-8 * direction), 0, 0)
     solid = cap.modifiers.new('thick', 'SOLIDIFY')
     solid.thickness = radius * 0.06
-    # Ride the head bone so it follows every animation.
-    bpy.context.view_layer.update()
-    world = cap.matrix_world.copy()
-    cap.parent = armature
-    cap.parent_type = 'BONE'
-    cap.parent_bone = 'Head'
-    bpy.context.view_layer.update()
-    cap.matrix_world = world
+    ride_head(cap)
     meshes.append(cap)
+
+# Alien costume head: a big rubber mask with almond eyes and antennae, worn over a real head.
+mask_parts = []
+if 'alienMask' in config:
+    mask_cfg = config['alienMask']
+    width = head_hi.x - head_lo.x
+    center = (head_lo + head_hi) / 2
+    r = width * 0.78
+    mask_mesh = bpy.data.meshes.new('mask')
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=14, radius=r)
+    for v in bm.verts:
+        # Tall dome on top, narrowing into a small chin (the classic "grey" head).
+        v.co.z *= 1.25 if v.co.z > 0 else 1.05
+        if v.co.z < 0:
+            taper = 1 + (v.co.z / r) * 0.62
+            v.co.x *= taper
+            v.co.y *= taper
+    bm.to_mesh(mask_mesh)
+    bm.free()
+    mask = add_object('mask', mask_mesh, mask_cfg['color'])
+    mask.location = (center.x, center.y, center.z + r * 0.12)
+    mask_parts.append(mask)
+    # Eyes: big black almonds on the face side (-Y), tilted outward.
+    for side in (-1, 1):
+        # Sitting on the surface (not inside it), wrapping around toward the sides.
+        eye = ellipsoid('mask_eye', mask_cfg.get('eyeColor', '#0b0b12'), r * 0.44, (1.0, 0.42, 0.62),
+                        (center.x + side * r * 0.46, center.y - r * 0.78, center.z + r * 0.16))
+        eye.rotation_euler = (0, math.radians(-28 * side), math.radians(35 * side))
+        mask_parts.append(eye)
+    # Antennae: thin stalks with glowing tips.
+    for side in (-1, 1):
+        stalk = ellipsoid('antenna', mask_cfg['color'], r * 0.06, (1, 1, 6),
+                          (center.x + side * r * 0.35, center.y + r * 0.1, center.z + r * 1.55), (8, 6))
+        stalk.rotation_euler = (0, math.radians(18 * side), 0)
+        tip = ellipsoid('antenna_tip', mask_cfg.get('glowColor', '#f0abfc'), r * 0.16, (1, 1, 1),
+                        (center.x + side * r * 0.47, center.y + r * 0.1, center.z + r * 1.95), (10, 8))
+        mask_parts += [stalk, tip]
+    for part in mask_parts:
+        ride_head(part)
+    meshes += mask_parts
 
 armature.data.pose_position = 'POSE'
 
@@ -256,19 +323,31 @@ chest = armature.matrix_world @ armature.pose.bones['Chest'].head
 armature.location.x -= chest.x
 bpy.context.view_layer.update()
 
+def show(objs, visible):
+    for o in objs:
+        o.hide_render = not visible
+
+
 only = next((a.split('=', 1)[1] for a in args if a.startswith('--only=')), None)
-anims = {'idle': ANIMATIONS['idle']} if preview else ANIMATIONS
+# Each character renders only the animations the game plays for them.
+wanted_anims = config.get('animations', list(ANIMATIONS))
+anims = {name: ANIMATIONS[name] for name in wanted_anims}
+if preview:
+    anims = {'idle': ANIMATIONS['idle']}
 if only:
     anims = {only: ANIMATIONS[only]}
 manifest = {}
-for name, (action_name, count, loop) in anims.items():
-    width = WIDE_FRAMES.get(name, FRAME_PX)
+
+
+def render_animation(name, suffix=''):
+    action_name, count, loop = ANIMATIONS[name]
+    width = {**WIDE_FRAMES, **config.get('wideFrames', {})}.get(name, FRAME_PX)
     scene.render.resolution_x = width
     action = bpy.data.actions[action_name]
     armature.animation_data.action = action
     start, end = action.frame_range
     # Looping animations skip the last frame (it repeats the first).
-    span = (end - start) if loop else (end - start)
+    span = end - start
     for i in range(count):
         t = start + span * (i / count if loop else i / max(1, count - 1))
         # The actions don't key the head's scale, so reset it or it would grow frame after frame.
@@ -277,8 +356,31 @@ for name, (action_name, count, loop) in anims.items():
         scene.frame_set(int(t), subframe=t - int(t))
         # Applied after the action is evaluated, so it holds on every frame (the cap rides along).
         head_bone.scale *= proportions['head']
-        render(os.path.join(out_dir, f"{config['id']}-{name}-{i:02d}.png"))
-    manifest[name] = {'frames': count, 'loop': loop, 'width': width}
+        render(os.path.join(out_dir, f"{config['id']}-{name}{suffix}-{i:02d}.png"))
+    manifest[name + suffix] = {'frames': count, 'loop': loop, 'width': width}
+
+
+# In costume, the real head is hidden under the mask.
+show([head_obj], not mask_parts)
+for name in anims:
+    render_animation(name)
+
+if mask_parts and not preview:
+    # Later levels: the mask flies off when they go down, showing a regular person.
+    show(mask_parts, False)
+    show([head_obj], True)
+    for name in config.get('unmaskedAnimations', []):
+        if not only or only == name:
+            render_animation(name, '-unmasked')
+    # The mask alone, as it looks on the standing pose, for the game to toss.
+    show([o for o in meshes if o not in mask_parts], False)
+    show(mask_parts, True)
+    armature.animation_data.action = bpy.data.actions['Idle']
+    armature.pose.bones['Head'].scale = (1, 1, 1)
+    scene.frame_set(0)
+    armature.pose.bones['Head'].scale *= proportions['head']
+    scene.render.resolution_x = FRAME_PX
+    render(os.path.join(out_dir, f"{config['id']}-mask.png"))
 
 manifest_path = os.path.join(out_dir, 'manifest.json')
 if only and os.path.exists(manifest_path):

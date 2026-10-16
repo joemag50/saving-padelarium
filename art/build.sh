@@ -24,9 +24,13 @@ mkdir -p "$frames_dir" "$out_dir" "$preview_dir"
 cp "$frames_dir/manifest.json" "$root/art/characters/$id.frames.json"
 
 for anim in $(python3 -c "import json,sys; print(' '.join(json.load(open(sys.argv[1]))['animations']))" "$frames_dir/manifest.json"); do
-  frames=("$frames_dir/$id-$anim"-*.png)
+  frames=("$frames_dir/$id-$anim"-[0-9][0-9].png)
   magick "${frames[@]}" +append -strip -define png:compression-level=9 "$out_dir/$anim.png"
   magick -delay 8 -dispose background "${frames[@]}" -delay 40 "${frames[${#frames[@]}-1]}" \
     -background '#2a3550' -alpha remove -loop 0 "$preview_dir/$id-$anim.gif"
 done
+# Costumed characters: the mask on its own, tossed when they go down in later levels.
+if [ -f "$frames_dir/$id-mask.png" ]; then
+  magick "$frames_dir/$id-mask.png" -trim +repage -strip "$out_dir/mask.png"
+fi
 echo "✓ $id → $out_dir"

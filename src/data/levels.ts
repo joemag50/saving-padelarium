@@ -9,6 +9,12 @@ import type { RosterCharacterId } from './roster';
  * fight → hallway → boss → walk up to the rescued friends, who share what they saw.
  * Edit the texts here freely; nothing else depends on their wording.
  */
+/**
+ * From this level on, a costumed enemy's mask flies off when it goes down, showing a regular
+ * person. Level 3's rescued friends are the first to tell that the aliens are people in costume.
+ */
+export const MASK_REVEAL_FROM_LEVEL = 4;
+
 export type LevelDefinition = {
   id: number;
   title: string;
